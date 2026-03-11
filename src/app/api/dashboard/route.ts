@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     actionedThisWeek,
     recentIssues,
     projectStats,
+    recentActivity,
   ] = await Promise.all([
     // Total open issues
     prisma.issue.count({
@@ -63,6 +64,16 @@ export async function GET(req: NextRequest) {
         },
       },
     }),
+    // Recent activity logs
+    prisma.activityLog.findMany({
+      where: projectId ? { issue: { projectId } } : {},
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { name: true } },
+        issue: { select: { title: true } },
+      },
+    }),
   ]);
 
   return NextResponse.json({
@@ -77,6 +88,14 @@ export async function GET(req: NextRequest) {
       name: p.name,
       totalIssues: p._count.issues,
       openIssues: p.issues.length,
+    })),
+    recentActivity: recentActivity.map((log: any) => ({
+      id: log.id,
+      action: log.action,
+      details: log.details,
+      createdAt: log.createdAt,
+      userName: log.user.name,
+      issueTitle: log.issue.title,
     })),
   });
 }

@@ -43,6 +43,7 @@ export function statusColor(status: string): string {
   const colors: Record<string, string> = {
     OPEN: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     ACTIONED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    IN_REVIEW: "bg-orange-500/20 text-orange-400 border-orange-500/30",
     DONE: "bg-purple-500/20 text-purple-400 border-purple-500/30",
     ARCHIVED: "bg-gray-500/20 text-gray-400 border-gray-500/30",
   };

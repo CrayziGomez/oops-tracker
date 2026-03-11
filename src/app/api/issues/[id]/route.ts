@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
 
 // GET single issue
 export async function GET(
@@ -63,12 +64,24 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Extract only standard fields to avoid Prisma errors with nested objects (like reporter, project)
   const { title, description, status, severity, category } = body;
 
-  const updateData = isAdmin
-    ? { title, description, status, severity, category }
-    : { status }; // Non-admins can only update status
+  // Lifecycle Logic:
+  // If non-admin marks as DONE, move to IN_REVIEW instead.
+  let targetStatus = status;
+  if (!isAdmin && status === "DONE") {
+    targetStatus = "IN_REVIEW";
+  }
+
+  const updateData: any = isAdmin
+    ? { title, description, status: targetStatus, severity, category }
+    : { status: targetStatus };
+
+  // Fetch old data for logging if needed
+  const oldIssue = await prisma.issue.findUnique({
+    where: { id },
+    select: { status: true, title: true, severity: true, category: true },
+  });
 
   const issue = await prisma.issue.update({
     where: { id },
@@ -83,6 +96,24 @@ export async function PATCH(
       attachments: true,
     },
   });
+
+  // Log Activity
+  if (oldIssue && targetStatus && oldIssue.status !== targetStatus) {
+    await logActivity({
+      issueId: id,
+      userId: session.user.id,
+      action: "STATUS_CHANGE",
+      details: `Changed status from ${oldIssue.status} to ${targetStatus}`,
+    });
+  } else if (isAdmin && (title || description || severity || category)) {
+      // Log generic edit for admins if other fields changed
+      await logActivity({
+        issueId: id,
+        userId: session.user.id,
+        action: "EDIT",
+        details: "Updated issue details",
+      });
+  }
 
   return NextResponse.json(issue);
 }

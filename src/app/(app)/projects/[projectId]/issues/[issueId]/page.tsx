@@ -19,6 +19,7 @@ import {
   X,
   MessageSquare,
   Send,
+  CheckCircle2,
 } from "lucide-react";
 import {
   formatDate,
@@ -57,7 +58,7 @@ interface Issue {
   attachments: Attachment[];
 }
 
-const statuses = ["OPEN", "ACTIONED", "DONE", "ARCHIVED"];
+const statuses = ["OPEN", "ACTIONED", "IN_REVIEW", "DONE", "ARCHIVED"];
 const severities = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "COSMETIC"];
 const categories = ["BUG", "FEATURE", "UI_UX", "PERFORMANCE", "SECURITY", "OTHER"];
 
@@ -517,17 +518,62 @@ export default function IssueDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {canEdit && (
+          {/* Action Buttons */}
+          <div className="card p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-white/60 mb-2">Actions</h3>
+            
+            {/* Reporter Actions */}
+            {isOwner && (issue.status === "OPEN" || issue.status === "ACTIONED") && (
+              <button
+                onClick={() => handleStatusChange("DONE")}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-500/20"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Submit for Review
+              </button>
+            )}
+
+            {/* Admin Actions */}
+            {isAdmin && (
+              <>
+                {issue.status === "IN_REVIEW" && (
+                  <button
+                    onClick={() => handleStatusChange("DONE")}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Approve & Close
+                  </button>
+                )}
+                
+                {issue.status !== "ARCHIVED" && (
+                  <button
+                    onClick={() => handleStatusChange("ARCHIVED")}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-xl text-sm font-bold transition-all border border-white/5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Archive Issue
+                  </button>
+                )}
+              </>
+            )}
+
+            {!isAdmin && !isOwner && (
+              <p className="text-xs text-center text-white/20 italic">No actions available</p>
+            )}
+          </div>
+
+          {isAdmin && (
             <div className="card p-5">
               <h3 className="text-sm font-semibold text-white/60 mb-3">
-                Update Status
+                Force Status (Admin)
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {statuses.map((s) => (
                   <button
                     key={s}
                     onClick={() => handleStatusChange(s)}
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
                       issue.status === s
                         ? `${statusColor(s)} border`
                         : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60 border border-transparent"

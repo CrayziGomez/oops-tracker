@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
 
 // GET issues (with filtering)
 export async function GET(req: NextRequest) {
@@ -102,6 +103,13 @@ export async function POST(req: NextRequest) {
         },
         attachments: true,
       },
+    });
+
+    await logActivity({
+      issueId: issue.id,
+      userId: session.user.id,
+      action: "CREATION",
+      details: `Issue created: ${title}`,
     });
 
     return NextResponse.json(issue, { status: 201 });
