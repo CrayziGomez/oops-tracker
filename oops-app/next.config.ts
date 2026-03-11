@@ -18,8 +18,8 @@ const nextConfig: any = {
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
+      allowedOrigins: ["oops.2bso.com", "192.168.1.13"],
     },
-    allowedDevOrigins: ["oops.2bso.com", "192.168.1.13"],
   },
 };
 

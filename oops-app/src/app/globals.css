@@ -62,7 +62,11 @@
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl;
+    @apply bg-white/10 backdrop-blur-xl border border-white/10 shadow-xl;
+  }
+
+  .glass-panel {
+    @apply bg-surface-900/95 backdrop-blur-2xl border border-white/10 shadow-2xl;
   }
 
   .glass-hover {
@@ -198,3 +202,14 @@
 .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(7) { animation-delay: 360ms; }
 .stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+

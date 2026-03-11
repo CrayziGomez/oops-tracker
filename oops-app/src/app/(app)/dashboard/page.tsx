@@ -30,6 +30,7 @@ interface DashboardData {
     updatedAt: string;
     reporter: { name: string };
     project: { name: string };
+    projectId: string;
   }>;
   projectStats: Array<{
     id: string;
@@ -42,7 +43,7 @@ interface DashboardData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { activeProject } = useProject();
+  const { activeProject, projects, setActiveProject } = useProject();
   const router = useRouter();
 
   useEffect(() => {
@@ -107,16 +108,47 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">
-          Dashboard
-        </h1>
-        <p className="text-white/40 mt-1">
-          {activeProject 
-            ? `Overview for ${activeProject.name}`
-            : "Overview of all issues across projects"}
-        </p>
+      {/* Page Title & Project Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            Dashboard
+          </h1>
+          <p className="text-white/40 mt-1">
+            {activeProject 
+              ? `Overview for ${activeProject.name}`
+              : "Overview of all issues across projects"}
+          </p>
+        </div>
+
+        {/* Project Selector Toggle */}
+        <div className="flex items-center gap-2 pb-1 overflow-x-auto no-scrollbar max-w-full">
+          <button
+            onClick={() => setActiveProject(null)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
+              !activeProject
+                ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10 hover:border-white/10 hover:text-white/60"
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            All Projects
+          </button>
+          {projects.map((project) => (
+            <button
+              key={project.id}
+              onClick={() => setActiveProject(project)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
+                activeProject?.id === project.id
+                  ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                  : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10 hover:border-white/10 hover:text-white/60"
+              }`}
+            >
+              <FolderKanban className="w-4 h-4" />
+              {project.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Metrics Cards */}
@@ -179,7 +211,7 @@ export default function DashboardPage() {
                   key={issue.id}
                   onClick={() =>
                     router.push(
-                      `/projects/${activeProject?.id || ""}/issues/${issue.id}`
+                      `/projects/${issue.projectId}/issues/${issue.id}`
                     )
                   }
                   className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-all group"

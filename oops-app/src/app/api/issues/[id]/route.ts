@@ -63,10 +63,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Non-admins can only update status
+  // Extract only standard fields to avoid Prisma errors with nested objects (like reporter, project)
+  const { title, description, status, severity, category } = body;
+
   const updateData = isAdmin
-    ? body
-    : { status: body.status };
+    ? { title, description, status, severity, category }
+    : { status }; // Non-admins can only update status
 
   const issue = await prisma.issue.update({
     where: { id },

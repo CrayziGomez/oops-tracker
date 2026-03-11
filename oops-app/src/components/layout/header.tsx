@@ -124,10 +124,32 @@ export function Header() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowProjectDropdown(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 rounded-xl glass border border-white/10 shadow-2xl z-50 py-1 animate-fade-in">
+                  <div className="absolute right-0 mt-2 w-64 rounded-xl glass-panel border border-white/10 shadow-2xl z-50 py-1 animate-fade-in">
                     <div className="px-3 py-2 text-xs font-semibold text-white/40 uppercase tracking-wider">
                       Projects
                     </div>
+                    {/* All Projects Option */}
+                    <button
+                      onClick={() => {
+                        setActiveProject(null);
+                        setShowProjectDropdown(false);
+                        router.push("/dashboard");
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-sm 
+                                  hover:bg-white/5 transition-colors ${
+                                    !activeProject
+                                      ? "text-brand-400"
+                                      : "text-white/70"
+                                  }`}
+                    >
+                      <div className="flex items-center gap-2 text-brand-400/80">
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span className="truncate">All Projects</span>
+                      </div>
+                      {!activeProject && (
+                        <Check className="w-4 h-4 text-brand-400" />
+                      )}
+                    </button>
                     {projects.map((project) => (
                       <button
                         key={project.id}
@@ -221,18 +243,20 @@ export function Header() {
                 </button>
               );
             })}
-            <div className="border-t border-white/5 pt-2 mt-2">
-              <button
-                onClick={() => {
-                  router.push("/admin/projects");
-                  setShowMobileMenu(false);
-                }}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-white/40 hover:text-white hover:bg-white/5 transition-all"
-              >
-                <Settings className="w-5 h-5" />
-                Settings
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="border-t border-white/5 pt-2 mt-2">
+                <button
+                  onClick={() => {
+                    router.push("/admin/projects");
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <Settings className="w-5 h-5" />
+                  Settings
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

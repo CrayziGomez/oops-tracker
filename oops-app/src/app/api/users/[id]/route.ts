@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 // DELETE a user (Admin only)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -13,7 +13,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user exists
     const user = await prisma.user.findUnique({

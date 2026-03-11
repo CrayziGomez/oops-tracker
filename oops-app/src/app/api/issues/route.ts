@@ -57,6 +57,12 @@ export async function POST(req: NextRequest) {
     const { title, description, severity, category, projectId, attachments } =
       body;
 
+    console.log("Creating issue with:", {
+      userId: session.user.id,
+      projectId,
+      title
+    });
+
     if (!title || !projectId) {
       return NextResponse.json(
         { error: "Title and project are required" },
