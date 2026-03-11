@@ -29,7 +29,7 @@ interface DashboardData {
     status: string;
     updatedAt: string;
     reporter: { name: string };
-    project: { name: string };
+    project: { id: string; name: string };
     projectId: string;
   }>;
   projectStats: Array<{
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                   key={issue.id}
                   onClick={() =>
                     router.push(
-                      `/projects/${issue.projectId}/issues/${issue.id}`
+                      `/projects/${issue.projectId || issue.project.id}/issues/${issue.id}`
                     )
                   }
                   className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-all group"
