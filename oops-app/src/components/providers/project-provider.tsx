@@ -13,7 +13,7 @@ interface Project {
 interface ProjectContextType {
   projects: Project[];
   activeProject: Project | null;
-  setActiveProject: (project: Project) => void;
+  setActiveProject: (project: Project | null) => void;
   refreshProjects: () => Promise<void>;
   isLoading: boolean;
 }
@@ -67,10 +67,14 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchProjects, status]);
 
-  const setActiveProject = (project: Project) => {
+  const setActiveProject = (project: Project | null) => {
     setActiveProjectState(project);
     if (typeof window !== "undefined") {
-      localStorage.setItem("activeProjectId", project.id);
+      if (project) {
+        localStorage.setItem("activeProjectId", project.id);
+      } else {
+        localStorage.removeItem("activeProjectId");
+      }
     }
   };
 
