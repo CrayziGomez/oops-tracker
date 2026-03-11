@@ -1,11 +1,10 @@
 generator client {
   provider        = "prisma-client-js"
-  output          = "../src/generated/prisma"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -13,7 +12,7 @@ model User {
   name         String
   email        String    @unique
   passwordHash String
-  role         Role      @default(REPORTER)
+  role         String    @default("REPORTER") // REPORTER, ADMIN
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   comments     Comment[]
@@ -37,9 +36,9 @@ model Issue {
   id          String       @id @default(cuid())
   title       String
   description String?
-  severity    Severity     @default(MEDIUM)
-  category    Category     @default(BUG)
-  status      Status       @default(OPEN)
+  severity    String       @default("MEDIUM") // CRITICAL, HIGH, MEDIUM, LOW, COSMETIC
+  category    String       @default("BUG")    // BUG, FEATURE, UI_UX, PERFORMANCE, SECURITY, OTHER
+  status      String       @default("OPEN")   // OPEN, ACTIONED, DONE, ARCHIVED
   projectId   String
   reporterId  String
   createdAt   DateTime     @default(now())
@@ -83,33 +82,4 @@ model Comment {
   @@index([issueId])
   @@index([authorId])
   @@map("comments")
-}
-
-enum Role {
-  ADMIN
-  REPORTER
-}
-
-enum Severity {
-  CRITICAL
-  HIGH
-  MEDIUM
-  LOW
-  COSMETIC
-}
-
-enum Category {
-  BUG
-  FEATURE
-  UI_UX
-  PERFORMANCE
-  SECURITY
-  OTHER
-}
-
-enum Status {
-  OPEN
-  ACTIONED
-  DONE
-  ARCHIVED
 }
