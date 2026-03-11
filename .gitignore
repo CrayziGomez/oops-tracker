@@ -1,0 +1,40 @@
+# Dependencies
+oops-app/node_modules/
+oops-app/.next/
+oops-app/out/
+oops-app/build/
+oops-app/.pnp/
+oops-app/.pnp.*
+oops-app/.yarn/*
+!oops-app/.yarn/patches
+!oops-app/.yarn/plugins
+!oops-app/.yarn/releases
+!oops-app/.yarn/versions
+
+# Environment files
+.env
+.env.*
+oops-app/.env
+oops-app/.env.*
+
+# Prisma generated folder
+oops-app/src/generated/prisma/
+
+# Artifacts & Log files
+*.log
+oops-app/npm-debug.log*
+oops-app/yarn-debug.log*
+oops-app/yarn-error.log*
+oops-app/auth_hits.log
+
+# Misc
+.DS_Store
+*.pem
+oops-app/*.tsbuildinfo
+oops-app/next-env.d.ts
+
+# SQLite local DBs (for later)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal

@@ -1,0 +1,109 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+// GET issues (with filtering)
+export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const projectId = searchParams.get("projectId");
+  const status = searchParams.get("status");
+  const severity = searchParams.get("severity");
+  const category = searchParams.get("category");
+  const limit = searchParams.get("limit");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {};
+
+  if (projectId) where.projectId = projectId;
+  if (status && status !== "ALL") where.status = status;
+  if (severity) where.severity = severity;
+  if (category) where.category = category;
+
+  const issues = await prisma.issue.findMany({
+    where,
+    include: {
+      reporter: {
+        select: { id: true, name: true, email: true },
+      },
+      project: {
+        select: { id: true, name: true },
+      },
+      attachments: true,
+      _count: {
+        select: { attachments: true },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    ...(limit ? { take: parseInt(limit) } : {}),
+  });
+
+  return NextResponse.json(issues);
+}
+
+// POST create issue
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { title, description, severity, category, projectId, attachments } =
+      body;
+
+    if (!title || !projectId) {
+      return NextResponse.json(
+        { error: "Title and project are required" },
+        { status: 400 }
+      );
+    }
+
+    const issue = await prisma.issue.create({
+      data: {
+        title,
+        description,
+        severity: severity || "MEDIUM",
+        category: category || "BUG",
+        projectId,
+        reporterId: session.user.id,
+        attachments: attachments?.length
+          ? {
+              create: attachments.map(
+                (a: {
+                  url: string;
+                  filename: string;
+                  type: string;
+                  size?: number;
+                }) => ({
+                  url: a.url,
+                  filename: a.filename,
+                  type: a.type,
+                  size: a.size,
+                })
+              ),
+            }
+          : undefined,
+      },
+      include: {
+        reporter: {
+          select: { id: true, name: true, email: true },
+        },
+        attachments: true,
+      },
+    });
+
+    return NextResponse.json(issue, { status: 201 });
+  } catch (error) {
+    console.error("Issue creation error:", error);
+    return NextResponse.json(
+      { error: "Failed to create issue" },
+      { status: 500 }
+    );
+  }
+}
