@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 // Lightweight auth config for middleware (no Prisma/bcrypt - those are Node.js only)
 // The actual credential validation happens in the full auth.ts via the authorize callback
 export const { auth: authMiddleware } = NextAuth({
+  trustHost: true,
   session: {
     strategy: "jwt",
   },
