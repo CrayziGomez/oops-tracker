@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       orderBy: { updatedAt: "desc" },
       include: {
         reporter: { select: { name: true } },
-        project: { select: { name: true } },
+        project: { select: { id: true, name: true } },
       },
     }),
     // Per-project open issue counts (only return the filtered one if projectId is set)
