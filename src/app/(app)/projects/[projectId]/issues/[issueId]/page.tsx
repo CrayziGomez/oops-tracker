@@ -331,8 +331,8 @@ export default function IssueDetailPage() {
                   <h1 className="text-xl sm:text-2xl font-bold text-white">
                     {issue.title}
                   </h1>
-                  {isAdmin && (
-                    <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0">
+                    {canEdit && (
                       <button
                         onClick={() => {
                           setEditData(issue);
@@ -343,6 +343,8 @@ export default function IssueDetailPage() {
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
+                    )}
+                    {isAdmin && (
                       <button
                         onClick={() => setShowDeleteConfirm(true)}
                         className="p-2 rounded-lg text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all"
@@ -350,8 +352,8 @@ export default function IssueDetailPage() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 mt-4">
                   <span className={`badge ${severityColor(issue.severity)}`}>

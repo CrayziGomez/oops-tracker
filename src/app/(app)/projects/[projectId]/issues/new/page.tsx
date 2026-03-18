@@ -11,6 +11,7 @@ import {
   Loader2,
   AlertTriangle,
   Send,
+  Info,
 } from "lucide-react";
 
 interface UploadedFile {
@@ -210,6 +211,42 @@ export default function NewIssuePage() {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+          
+          {/* Category Guide */}
+          <div className="px-4 py-4 rounded-2xl bg-brand-500/5 border border-brand-500/10 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-white/80">Category Guide</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="text-[12px]">
+                    <span className="text-brand-300 font-medium font-bold">BUG:</span>
+                    <span className="text-white/40 ml-1">Something is broken or not working as intended.</span>
+                  </div>
+                  <div className="text-[12px]">
+                    <span className="text-brand-300 font-medium font-bold">FEATURE:</span>
+                    <span className="text-white/40 ml-1">Request for new functionality or enhancement.</span>
+                  </div>
+                  <div className="text-[12px]">
+                    <span className="text-brand-300 font-medium font-bold">UI/UX:</span>
+                    <span className="text-white/40 ml-1">Visual glitches, layout issues, or usability.</span>
+                  </div>
+                  <div className="text-[12px]">
+                    <span className="text-brand-300 font-medium font-bold">PERFORMANCE:</span>
+                    <span className="text-white/40 ml-1">Slow loading, lag, or high resource usage.</span>
+                  </div>
+                  <div className="text-[12px]">
+                    <span className="text-brand-300 font-medium font-bold">SECURITY:</span>
+                    <span className="text-white/40 ml-1">Vulnerabilities or access control issues.</span>
+                  </div>
+                  <div className="text-[12px]">
+                    <span className="text-brand-300 font-medium font-bold">OTHER:</span>
+                    <span className="text-white/40 ml-1">Anything that doesn't fit the above.</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

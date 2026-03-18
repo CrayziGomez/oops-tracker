@@ -65,6 +65,7 @@ export async function PATCH(
   }
 
   const { title, description, status, severity, category } = body;
+  const isAuthorizedToEdit = isAdmin || isOwner;
 
   // Lifecycle Logic:
   // If non-admin marks as DONE, move to IN_REVIEW instead.
@@ -73,7 +74,7 @@ export async function PATCH(
     targetStatus = "IN_REVIEW";
   }
 
-  const updateData: any = isAdmin
+  const updateData: any = isAuthorizedToEdit
     ? { title, description, status: targetStatus, severity, category }
     : { status: targetStatus };
 

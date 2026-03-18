@@ -39,6 +39,10 @@ COPY --from=builder /app/package.json ./package.json
 # Create uploads directory and set permissions
 RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads
 
+# Add entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -46,6 +50,8 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
+ENTRYPOINT ["docker-entrypoint.sh"]
+
 # Note: In production, you typically run 'npx prisma db push' or 'npx prisma migrate deploy'
-# before starting. You can do this in entrypoint.sh or as a separate step.
+# before starting. This is now handled by the ENTRYPOINT above.
 CMD ["npm", "start"]

@@ -6,7 +6,7 @@ services:
     container_name: oops-tracker
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3005:3000"
     environment:
       - DATABASE_URL=file:./dev.db
       - NEXTAUTH_SECRET=secret_placeholder

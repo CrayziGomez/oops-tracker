@@ -86,21 +86,40 @@ Navigate to `http://localhost:3000`.
    npm run start
    ```
 
-### Docker Deployment
-The app is designed to be lightweight. When using Docker, ensure you mount a volume for the SQLite database and the uploads directory to persist data.
+### Docker Deployment (Recommended)
 
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-EXPOSE 3000
-# IMPORTANT: Ensure /app/prisma/dev.db and /app/public/uploads are mounted as volumes
-CMD ["npm", "run", "start"]
+The app is fully self-contained and "zero-config." To deploy:
+
+1. **Start the application**:
+   ```bash
+   docker compose up --build -d
+   ```
+   *The database will automatically initialize and seed itself on the first run.*
+
+2. **Login Credentials**:
+   | Role | Email | Password |
+   | :--- | :--- | :--- |
+   | **Admin** | `admin@oops.local` | `admin123` |
+   | **Reporter** | `reporter@oops.local` | `reporter123` |
+
+Your data (SQLite database and file uploads) is automatically persisted in Docker volumes.
+
+## ⚙️ Customization & FAQs
+
+### Changing the Port
+If port **3005** is already in use on your machine, you can change it in the `docker-compose.yml` file:
+```yaml
+ports:
+  - "8080:3000"  # Change the 8080 to your preferred port
 ```
+
+### Setting your Public URL
+The **`AUTH_URL`** in your `.env` file **must match exactly** the URL you use to access the app in your browser. 
+* **With a Reverse Proxy (NPM/Nginx)**: Use `https://oops.your-domain.com`
+* **Direct Access**: Use `http://your-server-ip:3005` (include the port!)
+
+> [!IMPORTANT]
+> If your `AUTH_URL` is incorrect, you will experience login failures or "Invalid Redirect" errors.
 
 ## 📂 Project Structure
 - `src/app`: Next.js App Router (Routes & APIs)
