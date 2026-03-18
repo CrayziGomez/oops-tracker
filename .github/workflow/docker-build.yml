@@ -31,6 +31,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: crayzi/oops-tracker:latest
-          tags: crayzi/oops-tracker:${{ github.sha }}
+          tags: |
+            crayzi/oops-tracker:latest
+            crayzi/oops-tracker:${{ github.sha }}
         
