@@ -35,6 +35,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
 
 # Create uploads directory and set permissions
 RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads

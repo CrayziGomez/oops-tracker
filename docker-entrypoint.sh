@@ -4,6 +4,9 @@
 
 echo "🚀 Booting OOPS Tracker..."
 
+# Ensure data directory exists
+mkdir -p /app/data
+
 # 1. Ensure the database schema is up to date
 echo "📦 Running Prisma DB Push..."
 npx prisma db push --accept-data-loss

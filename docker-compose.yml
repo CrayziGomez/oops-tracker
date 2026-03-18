@@ -8,11 +8,11 @@ services:
     ports:
       - "3005:3000"
     environment:
-      - DATABASE_URL=file:./dev.db
+      - DATABASE_URL=file:/app/data/dev.db
       - NEXTAUTH_SECRET=secret_placeholder
-      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_URL=http://localhost:3005
     volumes:
-      - oops_data:/app/prisma
+      - oops_data:/app/data
       - oops_uploads:/app/public/uploads
 
 volumes:
