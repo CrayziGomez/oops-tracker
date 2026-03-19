@@ -1,0 +1,294 @@
+"use client";
+
+import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { User, Mail, Lock, Loader2, AlertTriangle, CheckCircle, Eye, EyeOff } from "lucide-react";
+
+export default function ProfilePage() {
+  const { data: session } = useSession();
+
+  // Name form
+  const [name, setName] = useState(session?.user?.name || "");
+  const [nameLoading, setNameLoading] = useState(false);
+  const [nameMsg, setNameMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Email form
+  const [email, setEmail] = useState(session?.user?.email || "");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Password form
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const userId = session?.user?.id;
+
+  const patch = async (body: Record<string, string>) => {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return res;
+  };
+
+  const handleNameSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || name.trim() === session?.user?.name) return;
+    setNameLoading(true);
+    setNameMsg(null);
+    try {
+      const res = await patch({ name });
+      if (res.ok) {
+        setNameMsg({ type: "success", text: "Name updated. Sign out and back in to see it reflected everywhere." });
+      } else {
+        const err = await res.json();
+        setNameMsg({ type: "error", text: err.error || "Failed to update name" });
+      }
+    } catch {
+      setNameMsg({ type: "error", text: "An unexpected error occurred" });
+    } finally {
+      setNameLoading(false);
+    }
+  };
+
+  const handleEmailSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !emailPassword) return;
+    setEmailLoading(true);
+    setEmailMsg(null);
+    try {
+      const res = await patch({ email, currentPassword: emailPassword });
+      if (res.ok) {
+        setEmailPassword("");
+        setEmailMsg({ type: "success", text: "Email updated. Please sign out and back in for the change to take effect." });
+      } else {
+        const err = await res.json();
+        setEmailMsg({ type: "error", text: err.error || "Failed to update email" });
+      }
+    } catch {
+      setEmailMsg({ type: "error", text: "An unexpected error occurred" });
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handlePasswordSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword || !confirmPassword) return;
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: "error", text: "New passwords do not match" });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordMsg({ type: "error", text: "Password must be at least 8 characters" });
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordMsg(null);
+    try {
+      const res = await patch({ currentPassword, newPassword });
+      if (res.ok) {
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordMsg({ type: "success", text: "Password changed successfully." });
+      } else {
+        const err = await res.json();
+        setPasswordMsg({ type: "error", text: err.error || "Failed to change password" });
+      }
+    } catch {
+      setPasswordMsg({ type: "error", text: "An unexpected error occurred" });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-xl mx-auto space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">My Account</h1>
+        <p className="text-white/40 mt-1">{session?.user?.email}</p>
+      </div>
+
+      {/* Update Name */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center gap-2 text-white/70 font-semibold">
+          <User className="w-4 h-4" />
+          Display Name
+        </div>
+        <form onSubmit={handleNameSave} className="space-y-3">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="input-field"
+            placeholder="Your name"
+            required
+          />
+          {nameMsg && <Feedback msg={nameMsg} />}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={nameLoading || !name.trim() || name.trim() === session?.user?.name}
+              className="btn-primary"
+            >
+              {nameLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Name"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Update Email */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center gap-2 text-white/70 font-semibold">
+          <Mail className="w-4 h-4" />
+          Email Address
+        </div>
+        <form onSubmit={handleEmailSave} className="space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input-field"
+            placeholder="you@example.com"
+            required
+          />
+          <input
+            type="password"
+            value={emailPassword}
+            onChange={(e) => setEmailPassword(e.target.value)}
+            className="input-field"
+            placeholder="Current password to confirm"
+            required
+          />
+          {emailMsg && <Feedback msg={emailMsg} />}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={emailLoading || !email.trim() || !emailPassword}
+              className="btn-primary"
+            >
+              {emailLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Email"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Change Password */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center gap-2 text-white/70 font-semibold">
+          <Lock className="w-4 h-4" />
+          Change Password
+        </div>
+        <form onSubmit={handlePasswordSave} className="space-y-3">
+          <PasswordInput
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            show={showCurrent}
+            onToggle={() => setShowCurrent(!showCurrent)}
+            placeholder="Current password"
+          />
+          <PasswordInput
+            value={newPassword}
+            onChange={setNewPassword}
+            show={showNew}
+            onToggle={() => setShowNew(!showNew)}
+            placeholder="New password (min. 8 characters)"
+          />
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="input-field"
+            placeholder="Confirm new password"
+            required
+          />
+          {passwordMsg && <Feedback msg={passwordMsg} />}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+              className="btn-primary"
+            >
+              {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Change Password"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Sign out */}
+      <div className="card p-6 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-white/70">Signed in as</p>
+          <p className="text-sm text-white/40">{session?.user?.email}</p>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="btn-secondary"
+        >
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Feedback({ msg }: { msg: { type: "success" | "error"; text: string } }) {
+  return (
+    <div
+      className={`flex items-start gap-2 px-4 py-3 rounded-xl text-sm border ${
+        msg.type === "success"
+          ? "bg-green-500/10 border-green-500/20 text-green-400"
+          : "bg-red-500/10 border-red-500/20 text-red-400"
+      }`}
+    >
+      {msg.type === "success" ? (
+        <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+      ) : (
+        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+      )}
+      {msg.text}
+    </div>
+  );
+}
+
+function PasswordInput({
+  value,
+  onChange,
+  show,
+  onToggle,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative">
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="input-field pr-10"
+        placeholder={placeholder}
+        required
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/50 transition-colors"
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}

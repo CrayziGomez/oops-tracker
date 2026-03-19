@@ -196,17 +196,25 @@ export function Header() {
 
             {/* User Menu */}
             <div className="flex items-center gap-2">
-              <div className="hidden md:block text-right">
+              <button
+                onClick={() => router.push("/profile")}
+                className="hidden md:block text-right hover:opacity-80 transition-opacity"
+                title="My Account"
+              >
                 <div className="text-sm font-medium text-white/90">
                   {session?.user?.name}
                 </div>
                 <div className="text-xs text-white/40">
                   {session?.user?.role}
                 </div>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-xs font-bold">
+              </button>
+              <button
+                onClick={() => router.push("/profile")}
+                className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-xs font-bold hover:opacity-80 transition-opacity"
+                title="My Account"
+              >
                 {session?.user?.name?.charAt(0)?.toUpperCase() || "?"}
-              </div>
+              </button>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"

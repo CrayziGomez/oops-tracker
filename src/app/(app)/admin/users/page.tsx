@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
   Trash2,
+  KeyRound,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -37,6 +38,11 @@ export default function AdminUsersPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
   const { data: session } = useSession();
 
   const fetchUsers = async () => {
@@ -85,6 +91,33 @@ export default function AdminUsersPage() {
       setError("An unexpected error occurred");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleResetPassword = async (id: string) => {
+    if (!resetPassword || resetPassword.length < 8) {
+      setResetError("Password must be at least 8 characters");
+      return;
+    }
+    setIsResetting(true);
+    setResetError("");
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: resetPassword }),
+      });
+      if (res.ok) {
+        setResetUserId(null);
+        setResetPassword("");
+      } else {
+        const err = await res.json();
+        setResetError(err.error || "Failed to reset password");
+      }
+    } catch {
+      setResetError("An unexpected error occurred");
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -297,6 +330,21 @@ export default function AdminUsersPage() {
                     Joined {formatDate(user.createdAt)}
                   </span>
                 </div>
+                <button
+                  onClick={() => {
+                    setResetUserId(resetUserId === user.id ? null : user.id);
+                    setResetPassword("");
+                    setResetError("");
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    resetUserId === user.id
+                      ? "text-brand-400 bg-brand-400/10"
+                      : "text-white/20 hover:text-brand-400 hover:bg-brand-400/10"
+                  }`}
+                  title="Reset password"
+                >
+                  <KeyRound className="w-4 h-4" />
+                </button>
                 {user.id !== session?.user?.id && (
                   <button
                     onClick={() => handleDelete(user.id, user.name)}
@@ -308,6 +356,50 @@ export default function AdminUsersPage() {
                 )}
               </div>
             </div>
+
+            {/* Inline reset password form */}
+            {resetUserId === user.id && (
+              <div className="mt-4 pt-4 border-t border-white/5 animate-fade-in">
+                <p className="text-xs text-white/40 mb-3">Set a new password for <span className="text-white/60">{user.name}</span></p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showResetPassword ? "text" : "password"}
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      className="input-field pr-10 text-sm"
+                      placeholder="New password (min. 8 characters)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/50 transition-colors"
+                    >
+                      {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => handleResetPassword(user.id)}
+                    disabled={isResetting || !resetPassword}
+                    className="btn-primary text-sm"
+                  >
+                    {isResetting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                  </button>
+                  <button
+                    onClick={() => { setResetUserId(null); setResetPassword(""); setResetError(""); }}
+                    className="btn-secondary text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {resetError && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-red-400">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {resetError}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
