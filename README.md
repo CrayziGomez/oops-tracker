@@ -4,7 +4,7 @@
 
 ![OOPS Dashboard](docs/dashboard.png)
 
-OOPS is a self-hosted issue tracker with a premium **dark-mode aesthetic** and **glassmorphism** UI. Track bugs, outages, feature requests, and general observations across your projects — all in one place.
+OOPS is a self-hosted issue tracker with a premium **dark-mode aesthetic** and **glassmorphism** UI (light mode option included). Track bugs, outages, feature requests, and general observations across your projects — all in one place.
 
 ## ✨ Key Features
 

@@ -213,3 +213,164 @@
   }
 }
 
+/* ─── Light Mode Overrides ─────────────────────────────────────────────────
+   Unlayered CSS wins over @layer rules — no !important needed.
+   Base adaptive color: oklch(0.13 0.015 270) — very dark purple-grey.
+   Base background:     oklch(0.96 0.005 270) — very light lavender-grey.
+─────────────────────────────────────────────────────────────────────────── */
+
+[data-theme="light"] body {
+  background-color: oklch(0.96 0.005 270);
+  color: oklch(0.13 0.015 270);
+}
+
+[data-theme="light"] * {
+  border-color: oklch(0.13 0.015 270 / 0.1);
+}
+
+/* Scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background-color: oklch(0.13 0.015 270 / 0.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.13 0.015 270 / 0.25);
+}
+
+/* ── Component class overrides ── */
+
+[data-theme="light"] .glass {
+  background: oklch(1 0 0 / 0.85);
+  border-color: oklch(0.13 0.015 270 / 0.1);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .glass-panel {
+  background: oklch(0.99 0.003 270 / 0.97);
+  border-color: oklch(0.13 0.015 270 / 0.1);
+}
+
+[data-theme="light"] .glass-hover:hover {
+  background: oklch(0.13 0.015 270 / 0.05);
+  border-color: oklch(0.13 0.015 270 / 0.15);
+}
+
+[data-theme="light"] .card {
+  background-color: oklch(1 0 0 / 0.92);
+  border-color: oklch(0.13 0.015 270 / 0.07);
+  box-shadow:
+    0 0 0 1px oklch(0.13 0.015 270 / 0.05),
+    0 2px 8px oklch(0.13 0.015 270 / 0.08),
+    0 0 30px -10px oklch(0.55 0.22 270 / 0.1);
+}
+
+[data-theme="light"] .card-interactive {
+  background-color: oklch(1 0 0 / 0.92);
+  border-color: oklch(0.13 0.015 270 / 0.07);
+  box-shadow:
+    0 0 0 1px oklch(0.13 0.015 270 / 0.05),
+    0 2px 8px oklch(0.13 0.015 270 / 0.08),
+    0 0 30px -10px oklch(0.55 0.22 270 / 0.1);
+}
+[data-theme="light"] .card-interactive:hover {
+  background-color: oklch(0.97 0.004 270 / 0.95);
+  border-color: oklch(0.13 0.015 270 / 0.12);
+}
+
+[data-theme="light"] .btn-secondary {
+  background-color: oklch(0.13 0.015 270 / 0.06);
+  border-color: oklch(0.13 0.015 270 / 0.12);
+  color: oklch(0.13 0.015 270 / 0.8);
+}
+[data-theme="light"] .btn-secondary:hover {
+  background-color: oklch(0.13 0.015 270 / 0.1);
+  border-color: oklch(0.13 0.015 270 / 0.18);
+  color: oklch(0.13 0.015 270);
+}
+
+[data-theme="light"] .input-field {
+  background-color: oklch(1 0 0 / 0.8);
+  border-color: oklch(0.13 0.015 270 / 0.15);
+  color: oklch(0.13 0.015 270);
+}
+[data-theme="light"] .input-field::placeholder {
+  color: oklch(0.13 0.015 270 / 0.35);
+}
+
+/* ── text-white / opacity variants ── */
+
+[data-theme="light"] .text-white {
+  color: oklch(0.13 0.015 270);
+}
+[data-theme="light"] .text-white\/90 {
+  color: oklch(0.13 0.015 270 / 0.9);
+}
+[data-theme="light"] .text-white\/80 {
+  color: oklch(0.13 0.015 270 / 0.8);
+}
+[data-theme="light"] .text-white\/70 {
+  color: oklch(0.13 0.015 270 / 0.7);
+}
+[data-theme="light"] .text-white\/60 {
+  color: oklch(0.13 0.015 270 / 0.6);
+}
+[data-theme="light"] .text-white\/50 {
+  color: oklch(0.13 0.015 270 / 0.5);
+}
+[data-theme="light"] .text-white\/40 {
+  color: oklch(0.13 0.015 270 / 0.4);
+}
+[data-theme="light"] .text-white\/30 {
+  color: oklch(0.13 0.015 270 / 0.3);
+}
+[data-theme="light"] .text-white\/20 {
+  color: oklch(0.13 0.015 270 / 0.2);
+}
+[data-theme="light"] .text-white\/10 {
+  color: oklch(0.13 0.015 270 / 0.1);
+}
+
+/* ── bg-white / opacity variants ── */
+
+[data-theme="light"] .bg-white\/5 {
+  background-color: oklch(0.13 0.015 270 / 0.04);
+}
+[data-theme="light"] .bg-white\/10 {
+  background-color: oklch(0.13 0.015 270 / 0.07);
+}
+[data-theme="light"] .bg-white\/15 {
+  background-color: oklch(0.13 0.015 270 / 0.09);
+}
+[data-theme="light"] .bg-white\/20 {
+  background-color: oklch(0.13 0.015 270 / 0.11);
+}
+
+/* ── border-white / opacity variants ── */
+
+[data-theme="light"] .border-white\/5 {
+  border-color: oklch(0.13 0.015 270 / 0.06);
+}
+[data-theme="light"] .border-white\/10 {
+  border-color: oklch(0.13 0.015 270 / 0.1);
+}
+[data-theme="light"] .border-white\/20 {
+  border-color: oklch(0.13 0.015 270 / 0.15);
+}
+[data-theme="light"] .border-white\/30 {
+  border-color: oklch(0.13 0.015 270 / 0.2);
+}
+
+/* ── bg-surface overrides ── */
+
+[data-theme="light"] .bg-surface-950 {
+  background-color: oklch(0.96 0.005 270);
+}
+[data-theme="light"] .bg-surface-900 {
+  background-color: oklch(0.98 0.004 270);
+}
+[data-theme="light"] .bg-surface-800 {
+  background-color: oklch(0.93 0.006 270);
+}
+[data-theme="light"] .bg-surface-700 {
+  background-color: oklch(0.88 0.008 270);
+}
+

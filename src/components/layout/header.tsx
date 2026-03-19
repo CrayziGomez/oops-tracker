@@ -16,11 +16,15 @@ import {
   X,
   Check,
   Settings,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/components/providers/theme-provider";
 
 export function Header() {
   const { data: session } = useSession();
   const { projects, activeProject, setActiveProject } = useProject();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const router = useRouter();
@@ -214,6 +218,17 @@ export function Header() {
                 title="My Account"
               >
                 {session?.user?.name?.charAt(0)?.toUpperCase() || "?"}
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
               </button>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
