@@ -43,15 +43,18 @@ npm install
 ```
 
 ### 3. Configure Environment
-Create a `.env` file in the root directory:
-```env
-# Database (SQLite)
-DATABASE_URL="file:./dev.db"
+Copy the example env file and fill in your values:
+```bash
+cp .env.example .env.local
+```
 
-# NextAuth
-AUTH_SECRET="your-secure-random-secret"
+Key values to set in `.env.local`:
+```env
+DATABASE_URL="file:./dev.db"
+AUTH_SECRET="your-secure-random-secret"   # generate: openssl rand -base64 32
 AUTH_URL="http://localhost:3000"
-AUTH_TRUST_HOST=true
+SEED_ADMIN_PASSWORD="your-admin-password"
+SEED_REPORTER_PASSWORD="your-reporter-password"
 ```
 
 ### 4. Initialize Database
@@ -88,30 +91,38 @@ Navigate to `http://localhost:3000`.
 
 ### Docker Deployment (Recommended)
 
-The app is fully self-contained and "zero-config." To deploy:
-
-1. **Start the application**:
+1. **Copy and configure the compose file**:
    ```bash
-   docker compose up --build -d
+   cp docker-compose.example.yml docker-compose.prod.yml
    ```
-   *The database will automatically initialize and seed itself on the first run.*
+   Edit `docker-compose.prod.yml` and replace all `<change-me>` placeholders.
 
-2. **Login Credentials**:
-   | Role | Email | Password |
+2. **Start the application**:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+   The database initialises and seeds itself automatically on first boot.
+
+3. **Login Credentials** — defaults shown, override via env vars in your compose file:
+   | Role | Default Email | Password |
    | :--- | :--- | :--- |
-   | **Admin** | `admin@oops.local` | `admin123` |
-   | **Reporter** | `reporter@oops.local` | `reporter123` |
+   | **Admin** | `admin@oops.local` (or `SEED_ADMIN_EMAIL`) | value of `SEED_ADMIN_PASSWORD` |
+   | **Reporter** | `reporter@oops.local` (or `SEED_REPORTER_EMAIL`) | value of `SEED_REPORTER_PASSWORD` |
+
+> [!IMPORTANT]
+> Change the default passwords in your compose file before first deploy. They are only applied once on initial database creation.
 
 Your data (SQLite database and file uploads) is automatically persisted in Docker volumes.
 
 ## ⚙️ Customization & FAQs
 
 ### Changing the Port
-If port **3005** is already in use on your machine, you can change it in the `docker-compose.yml` file:
+Change the left-hand port number in your compose file:
 ```yaml
 ports:
-  - "8080:3000"  # Change the 8080 to your preferred port
+  - "8080:3000"  # Replace 8080 with your preferred port
 ```
+Then update `NEXTAUTH_URL` to match, e.g. `http://localhost:8080`.
 
 ### Setting your Public URL
 The **`AUTH_URL`** in your `.env` file **must match exactly** the URL you use to access the app in your browser. 

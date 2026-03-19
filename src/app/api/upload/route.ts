@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { uploadToS3, getFileType } from "@/lib/s3";
+import { uploadToStorage, getFileType } from "@/lib/storage";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url } = await uploadToS3(buffer, file.name, file.type);
+    const { url } = await uploadToStorage(buffer, file.name, file.type);
     const type = getFileType(file.name);
 
     // If issueId is provided, create attachment record
@@ -41,6 +42,14 @@ export async function POST(req: NextRequest) {
           issueId,
         },
       });
+
+      await logActivity({
+        issueId,
+        userId: session.user.id!,
+        action: "ATTACHMENT",
+        details: `Uploaded file: ${file.name}`,
+      });
+
       return NextResponse.json(attachment);
     }
 

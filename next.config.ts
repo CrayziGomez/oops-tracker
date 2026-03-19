@@ -1,7 +1,6 @@
-import type { NextConfig } from "next";
-
-const nextConfig: any = {
-  // Allow external image domains for S3 attachments
+const nextConfig = {
+  // Standalone output: traces only used files, dramatically reduces Docker image size
+  output: "standalone",
   images: {
     remotePatterns: [
       {

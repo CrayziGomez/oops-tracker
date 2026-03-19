@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
     prisma.issue.count({
       where: { severity: "CRITICAL", status: { not: "ARCHIVED" }, ...whereClause },
     }),
-    // Issues actioned this week
+    // Issues progressed this week (moved to ACTIONED, IN_REVIEW, or DONE)
     prisma.issue.count({
       where: {
-        status: "ACTIONED",
+        status: { in: ["ACTIONED", "IN_REVIEW", "DONE"] },
         updatedAt: { gte: weekAgo },
         ...whereClause,
       },

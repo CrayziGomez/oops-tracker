@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Production compose files (contain secrets — use docker-compose.example.yml as template)
+docker-compose.prod.yml
+docker-compose.override.yml
+
 # vercel
 .vercel
 

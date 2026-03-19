@@ -1,0 +1,44 @@
+version: "3.8"
+
+# OOPS Tracker — Docker Compose Example
+# ----------------------------------------
+# 1. Copy this file: cp docker-compose.example.yml docker-compose.prod.yml
+# 2. Fill in all values marked <change-me>
+# 3. Run: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  app:
+    image: crayzi/oops-tracker:latest
+    container_name: oops-tracker
+    restart: unless-stopped
+    ports:
+      - "3003:3000"       # Change left side to your preferred host port
+    environment:
+      # SQLite database path — do not change unless you know what you're doing
+      - DATABASE_URL=file:/app/data/dev.db
+
+      # Generate a secret with: openssl rand -base64 32
+      - NEXTAUTH_SECRET=<change-me>
+
+      # Your public URL (used for auth redirects)
+      # With a domain:        https://oops.example.com
+      # Local network access: http://<your-server-ip>:3003
+      # Same machine only:    http://localhost:3003
+      - NEXTAUTH_URL=http://localhost:3003
+
+      - AUTH_TRUST_HOST=true
+
+      # Credentials for the two seed accounts created on first boot.
+      # Emails default to admin@oops.local / reporter@oops.local if not set.
+      - SEED_ADMIN_EMAIL=admin@oops.local
+      - SEED_REPORTER_EMAIL=reporter@oops.local
+      - SEED_ADMIN_PASSWORD=<change-me>
+      - SEED_REPORTER_PASSWORD=<change-me>
+
+    volumes:
+      - oops_data:/app/data          # Persists the SQLite database
+      - oops_uploads:/app/public/uploads  # Persists uploaded files
+
+volumes:
+  oops_data:
+  oops_uploads:

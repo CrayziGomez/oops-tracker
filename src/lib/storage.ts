@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 // Ensure the upload directory exists
 const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 
-export async function uploadToS3(
+export async function uploadToStorage(
   file: Buffer,
   filename: string,
   contentType: string
@@ -25,7 +25,7 @@ export async function uploadToS3(
   return { url, key };
 }
 
-export async function deleteFromS3(url: string): Promise<void> {
+export async function deleteFromStorage(url: string): Promise<void> {
   try {
     const filename = url.split("/").pop();
     if (!filename) return;

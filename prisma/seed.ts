@@ -7,33 +7,42 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...\n");
 
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@oops.local";
+  const reporterEmail = process.env.SEED_REPORTER_EMAIL ?? "reporter@oops.local";
+  const adminPass = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
+  const reporterPass = process.env.SEED_REPORTER_PASSWORD ?? "reporter123";
+
+  if (!process.env.SEED_ADMIN_PASSWORD) {
+    console.warn("⚠️  SEED_ADMIN_PASSWORD not set — using default 'admin123'. Change this in production!");
+  }
+
   // Create Admin user
-  const adminPassword = await hash("admin123", 12);
+  const adminPassword = await hash(adminPass, 12);
   const admin = await prisma.user.upsert({
-    where: { email: "admin@oops.local" },
+    where: { email: adminEmail },
     update: {},
     create: {
       name: "Admin",
-      email: "admin@oops.local",
+      email: adminEmail,
       passwordHash: adminPassword,
       role: "ADMIN",
     },
   });
-  console.log(`✅ Admin user created: ${admin.email} (password: admin123)`);
+  console.log(`✅ Admin user created: ${admin.email}`);
 
   // Create Reporter user
-  const reporterPassword = await hash("reporter123", 12);
+  const reporterPassword = await hash(reporterPass, 12);
   const reporter = await prisma.user.upsert({
-    where: { email: "reporter@oops.local" },
+    where: { email: reporterEmail },
     update: {},
     create: {
       name: "Reporter",
-      email: "reporter@oops.local",
+      email: reporterEmail,
       passwordHash: reporterPassword,
       role: "REPORTER",
     },
   });
-  console.log(`✅ Reporter user created: ${reporter.email} (password: reporter123)`);
+  console.log(`✅ Reporter user created: ${reporter.email}`);
 
   // Create sample projects
   const project1 = await prisma.project.upsert({
@@ -139,8 +148,8 @@ async function main() {
   console.log(`✅ ${sampleIssues.length} sample issues created`);
   console.log("\n🎉 Seed completed successfully!");
   console.log("\n📋 Login credentials:");
-  console.log("   Admin:    admin@oops.local / admin123");
-  console.log("   Reporter: reporter@oops.local / reporter123");
+  console.log(`   Admin:    ${adminEmail} / (your SEED_ADMIN_PASSWORD)`);
+  console.log(`   Reporter: ${reporterEmail} / (your SEED_REPORTER_PASSWORD)`);
 }
 
 main()

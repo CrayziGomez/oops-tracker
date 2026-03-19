@@ -1,9 +1,9 @@
 node_modules
 .next
 .git
-.env
-.env.local
+.env*
 prisma/*.db
 prisma/*.db-journal
 README.md
-docker-compose.yml
+docker-compose*.yml
+public/uploads/*
