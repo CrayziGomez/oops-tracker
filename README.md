@@ -25,7 +25,7 @@ This is the easiest way to run OOPS. You do not need Node.js or any development 
 
 ### Step 1 — Install Docker
 
-If Docker is not already installed on your machine:
+If Docker is not already installed on your machine: 
 
 - **Linux (Ubuntu/Debian)**:
   ```bash
@@ -106,7 +106,7 @@ Copy the output and paste it as the value for `NEXTAUTH_SECRET`.
 docker compose up -d
 ```
 
-Docker will pull the image (~200MB) and start the container. This may take a minute on first run.
+Docker will pull the image (~400MB) and start the container. This may take a minute on first run.
 
 Check it started successfully:
 ```bash
