@@ -37,8 +37,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
-# Create uploads directory and set permissions
-RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads
+# Create directories and set permissions
+RUN mkdir -p public/uploads /app/data && chown -R nextjs:nodejs public/uploads /app/data
 
 # Add entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
