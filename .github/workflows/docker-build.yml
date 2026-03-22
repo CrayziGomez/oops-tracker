@@ -34,4 +34,14 @@ jobs:
           tags: |
             crayzi/oops-tracker:latest
             crayzi/oops-tracker:${{ github.sha }}
+
+      # 5. Update Docker Hub Description
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: crayzi/oops-tracker
+          short-description: "Self-hosted issue tracker with premium dark-mode aesthetic and glassmorphism UI."
+          readme-filepath: ./README.md
         
