@@ -57,7 +57,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin = session.user.role === "OWNER";
   const isOwner = existing.reporterId === session.user.id;
 
   if (!isAdmin && !isOwner) {
@@ -125,7 +125,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "OWNER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

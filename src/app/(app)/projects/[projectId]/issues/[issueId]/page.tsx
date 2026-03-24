@@ -82,7 +82,7 @@ export default function IssueDetailPage() {
   const projectId = params.projectId as string;
   const { data: session } = useSession();
 
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = session?.user?.role === "OWNER";
   const isOwner = issue?.reporter.id === session?.user?.id;
   const canEdit = isAdmin || isOwner;
 

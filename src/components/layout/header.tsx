@@ -30,7 +30,7 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = session?.user?.role === "OWNER";
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

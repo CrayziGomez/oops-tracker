@@ -6,7 +6,7 @@ import { hash } from "bcryptjs";
 // GET all users (Admin only)
 export async function GET() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "OWNER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -30,7 +30,7 @@ export async function GET() {
 // POST create user (Admin only)
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "OWNER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         name,
         email,
         passwordHash,
-        role: role || "REPORTER",
+        role: role || "USER",
       },
       select: {
         id: true,

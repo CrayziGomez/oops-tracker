@@ -25,6 +25,15 @@ export async function GET(req: NextRequest) {
   if (severity) where.severity = severity;
   if (category) where.category = category;
 
+  const isOwner = session.user.role === "OWNER";
+  if (!isOwner) {
+    where.project = {
+      members: {
+        some: { userId: session.user.id }
+      }
+    };
+  }
+
   const issues = await prisma.issue.findMany({
     where,
     include: {
@@ -69,6 +78,21 @@ export async function POST(req: NextRequest) {
         { error: "Title and project are required" },
         { status: 400 }
       );
+    }
+
+    const isOwner = session.user.role === "OWNER";
+    if (!isOwner) {
+      const membership = await prisma.projectMember.findUnique({
+        where: {
+          userId_projectId: { userId: session.user.id, projectId },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Forbidden: Not a project member" },
+          { status: 403 }
+        );
+      }
     }
 
     const issue = await prisma.issue.create({

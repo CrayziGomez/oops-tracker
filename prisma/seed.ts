@@ -16,6 +16,17 @@ async function main() {
     console.warn("⚠️  SEED_ADMIN_PASSWORD not set — using default 'admin123'. Change this in production!");
   }
 
+  // Migrate existing users' roles from old schema
+  await prisma.user.updateMany({
+    where: { role: "ADMIN" },
+    data: { role: "OWNER" }
+  });
+  await prisma.user.updateMany({
+    where: { role: "REPORTER" },
+    data: { role: "USER" }
+  });
+  console.log("🔄 Existing user roles migrated.");
+
   // Create Admin user
   const adminPassword = await hash(adminPass, 12);
   const admin = await prisma.user.upsert({
@@ -25,7 +36,7 @@ async function main() {
       name: "Admin",
       email: adminEmail,
       passwordHash: adminPassword,
-      role: "ADMIN",
+      role: "OWNER",
     },
   });
   console.log(`✅ Admin user created: ${admin.email}`);
@@ -39,7 +50,7 @@ async function main() {
       name: "Reporter",
       email: reporterEmail,
       passwordHash: reporterPassword,
-      role: "REPORTER",
+      role: "USER",
     },
   });
   console.log(`✅ Reporter user created: ${reporter.email}`);
@@ -73,6 +84,24 @@ async function main() {
   });
 
   console.log(`✅ Projects created: ${project1.name}, ${project2.name}, ${project3.name}`);
+
+  // Create project memberships
+  const memberships = [
+    { userId: admin.id, projectId: project1.id, role: "PROJECT_ADMIN" },
+    { userId: admin.id, projectId: project2.id, role: "PROJECT_ADMIN" },
+    { userId: admin.id, projectId: project3.id, role: "PROJECT_ADMIN" },
+    { userId: reporter.id, projectId: project1.id, role: "PROJECT_REPORTER" },
+    { userId: reporter.id, projectId: project2.id, role: "PROJECT_REPORTER" },
+  ];
+
+  for (const m of memberships) {
+    await prisma.projectMember.upsert({
+      where: { userId_projectId: { userId: m.userId, projectId: m.projectId } },
+      update: {},
+      create: m,
+    });
+  }
+  console.log(`✅ Project members assigned`);
 
   // Create sample issues
   const sampleIssues = [

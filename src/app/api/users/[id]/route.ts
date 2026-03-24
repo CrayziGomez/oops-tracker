@@ -14,10 +14,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const isAdmin = session.user.role === "ADMIN";
+  const isOwner = session.user.role === "OWNER";
   const isSelf = session.user.id === id;
 
-  if (!isSelf && !isAdmin) {
+  if (!isSelf && !isOwner) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -43,7 +43,7 @@ export async function PATCH(
         return NextResponse.json({ error: "Email cannot be empty" }, { status: 400 });
       }
       // Non-admins must verify their current password to change email
-      if (isSelf && !isAdmin) {
+      if (isSelf && !isOwner) {
         if (!currentPassword) {
           return NextResponse.json({ error: "Current password required to change email" }, { status: 400 });
         }
@@ -98,7 +98,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "OWNER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

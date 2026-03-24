@@ -34,7 +34,7 @@ export default function AdminUsersPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("REPORTER");
+  const [role, setRole] = useState("USER");
   const [showPassword, setShowPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
@@ -80,7 +80,7 @@ export default function AdminUsersPage() {
         setName("");
         setEmail("");
         setPassword("");
-        setRole("REPORTER");
+        setRole("USER");
         setShowCreate(false);
         await fetchUsers();
       } else {
@@ -249,11 +249,11 @@ export default function AdminUsersPage() {
                   onChange={(e) => setRole(e.target.value)}
                   className="input-field"
                 >
-                  <option value="REPORTER" className="bg-surface-900">
-                    Reporter
+                  <option value="USER" className="bg-surface-900">
+                    User
                   </option>
-                  <option value="ADMIN" className="bg-surface-900">
-                    Admin
+                  <option value="OWNER" className="bg-surface-900">
+                    Owner
                   </option>
                 </select>
               </div>
@@ -301,12 +301,12 @@ export default function AdminUsersPage() {
                     </h3>
                     <span
                       className={`badge text-[10px] ${
-                        user.role === "ADMIN"
+                        user.role === "OWNER"
                           ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
                           : "bg-blue-500/20 text-blue-400 border-blue-500/30"
                       }`}
                     >
-                      {user.role === "ADMIN" ? (
+                      {user.role === "OWNER" ? (
                         <Shield className="w-3 h-3" />
                       ) : (
                         <User className="w-3 h-3" />

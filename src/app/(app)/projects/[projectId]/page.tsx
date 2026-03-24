@@ -15,6 +15,7 @@ import {
   Paperclip,
   ChevronRight,
   Loader2,
+  Users,
 } from "lucide-react";
 import {
   formatRelativeTime,
@@ -107,13 +108,24 @@ export default function ProjectIssuesPage() {
             {statusFilter !== "ALL" && ` (${statusFilter.toLowerCase()})`}
           </p>
         </div>
-        <button
-          onClick={() => router.push(`/projects/${projectId}/issues/new`)}
-          className="btn-primary"
-        >
-          <Plus className="w-4 h-4" />
-          New Issue
-        </button>
+        <div className="flex gap-2">
+          {session?.user?.role === "OWNER" && (
+            <button
+              onClick={() => router.push(`/projects/${projectId}/team`)}
+              className="btn-secondary hidden sm:flex"
+            >
+              <Users className="w-4 h-4" />
+              Manage Team
+            </button>
+          )}
+          <button
+            onClick={() => router.push(`/projects/${projectId}/issues/new`)}
+            className="btn-primary"
+          >
+            <Plus className="w-4 h-4" />
+            New Issue
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

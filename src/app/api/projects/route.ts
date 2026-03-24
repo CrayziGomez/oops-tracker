@@ -9,7 +9,14 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const isOwner = session.user.role === "OWNER";
+
   const projects = await prisma.project.findMany({
+    where: isOwner ? {} : {
+      members: {
+        some: { userId: session.user.id }
+      }
+    },
     orderBy: { name: "asc" },
     include: {
       _count: {
@@ -24,7 +31,7 @@ export async function GET() {
 // POST create project (Admin only)
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "OWNER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

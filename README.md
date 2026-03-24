@@ -8,10 +8,11 @@ OOPS is a self-hosted issue tracker with a premium **dark-mode aesthetic** and *
 
 ## ✨ Key Features
 
-- **📂 Project-Based Organisation**: Group issues by project for clean segregation.
+- **📂 Project-Based Organisation**: Group issues by project. Users only see and interact with projects they are explicitly assigned to.
 - **🛡️ Role-Based Access Control**:
-  - **Admins**: Full control over users, projects, and system settings.
-  - **Reporters**: Can report issues, update their own tickets, and join discussions.
+  - **Global Owners**: Full control over the system (create projects, manage global users, configure settings).
+  - **Project Admins**: Can manage project team members and review/close issues for their specific projects.
+  - **Users / Reporters**: Can report issues, update their own tickets, and join discussions strictly within their assigned projects.
 - **💬 Comments**: Discussion threads on every issue.
 - **📎 Attachments**: Upload images, logs, and documents to issues.
 - **📊 Dashboard**: High-level overview of system metrics and activity.
@@ -122,8 +123,8 @@ Open your browser and go to the URL you set as `NEXTAUTH_URL`.
 
 | Role | Email | Password |
 |---|---|---|
-| **Admin** | `admin@oops.local` | value of `SEED_ADMIN_PASSWORD` |
-| **Reporter** | `reporter@oops.local` | value of `SEED_REPORTER_PASSWORD` |
+| **Global Owner** | `admin@oops.local` | value of `SEED_ADMIN_PASSWORD` |
+| **User** | `reporter@oops.local` | value of `SEED_REPORTER_PASSWORD` |
 
 > The email addresses can be customised — see the [Configuration](#configuration) section.
 
@@ -138,10 +139,10 @@ All settings are environment variables in your `docker-compose.yml`:
 | `NEXTAUTH_SECRET` | ✅ | Random secret for session encryption. Generate with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | ✅ | The URL you use to access the app in your browser |
 | `AUTH_TRUST_HOST` | ✅ | Keep as `true` when using a reverse proxy or local network |
-| `SEED_ADMIN_PASSWORD` | ✅ | Password for the admin account (set before first boot) |
-| `SEED_REPORTER_PASSWORD` | ✅ | Password for the reporter account (set before first boot) |
-| `SEED_ADMIN_EMAIL` | optional | Admin login email. Default: `admin@oops.local` |
-| `SEED_REPORTER_EMAIL` | optional | Reporter login email. Default: `reporter@oops.local` |
+| `SEED_ADMIN_PASSWORD` | ✅ | Password for the global owner account (set before first boot) |
+| `SEED_REPORTER_PASSWORD` | ✅ | Password for the default user account (set before first boot) |
+| `SEED_ADMIN_EMAIL` | optional | Owner login email. Default: `admin@oops.local` |
+| `SEED_REPORTER_EMAIL` | optional | User login email. Default: `reporter@oops.local` |
 
 > [!IMPORTANT]
 > Seed passwords and emails are only applied **once**, on the very first boot when the database is created. To change them after that, update the account via the admin panel inside the app.

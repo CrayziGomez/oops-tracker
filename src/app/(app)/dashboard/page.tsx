@@ -19,6 +19,7 @@ import {
   FileUp,
   X,
   User as UserIcon,
+  Trophy,
 } from "lucide-react";
 import { formatRelativeTime, severityColor, statusColor } from "@/lib/utils";
 
@@ -54,8 +55,16 @@ interface DashboardData {
   }>;
 }
 
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  email: string;
+  count: number;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { activeProject, projects, setActiveProject } = useProject();
   const router = useRouter();
@@ -92,8 +101,20 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch("/api/dashboard/leaderboard");
+      if (res.ok) {
+        setLeaderboard(await res.json());
+      }
+    } catch (error) {
+      console.error("Failed to fetch leaderboard:", error);
+    }
+  };
+
   useEffect(() => {
     fetchDashboard();
+    fetchLeaderboard();
   }, [activeProject]);
 
   const handleQuickLogSubmit = async (e: React.FormEvent) => {
@@ -413,38 +434,74 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Project Overview Column */}
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <FolderKanban className="w-5 h-5 text-brand-400" />
-            <h2 className="text-lg font-semibold text-white">System Status</h2>
-          </div>
+        {/* Project Overview & Leaderboard Column */}
+        <div className="space-y-6">
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <FolderKanban className="w-5 h-5 text-brand-400" />
+              <h2 className="text-lg font-semibold text-white">System Status</h2>
+            </div>
 
-          <div className="space-y-4">
-            {data?.projectStats.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => router.push(`/projects/${project.id}`)}
-                className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] cursor-pointer transition-all"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-white/90">{project.name}</span>
-                  <div className="flex items-center gap-2">
-                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">{project.totalIssues - project.openIssues} FIXED</span>
+            <div className="space-y-4">
+              {data?.projectStats.map((project) => (
+                <div
+                  key={project.id}
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                  className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] cursor-pointer transition-all"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-white/90">{project.name}</span>
+                    <div className="flex items-center gap-2">
+                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">{project.totalIssues - project.openIssues} FIXED</span>
+                    </div>
+                  </div>
+                  <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-brand-500 transition-all duration-1000"
+                      style={{ width: `${project.totalIssues > 0 ? ((project.totalIssues - project.openIssues) / project.totalIssues) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-[10px] text-white/20">{project.totalIssues} total</span>
+                    <span className="text-[10px] text-brand-400">{project.openIssues} remaining</span>
                   </div>
                 </div>
-                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-brand-500 transition-all duration-1000"
-                    style={{ width: `${project.totalIssues > 0 ? ((project.totalIssues - project.openIssues) / project.totalIssues) * 100 : 0}%` }}
-                  />
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Trophy className="w-5 h-5 text-amber-400" />
+              <h2 className="text-lg font-semibold text-white">Top Reporters</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {leaderboard.length > 0 ? leaderboard.map((user, index) => (
+                <div key={user.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      index === 0 ? "bg-amber-500/20 text-amber-500 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
+                      index === 1 ? "bg-slate-300/20 text-slate-300 border border-slate-300/50" :
+                      index === 2 ? "bg-amber-700/20 text-amber-600 border border-amber-700/50" :
+                      "bg-white/5 text-white/50"
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white/90">{user.name}</p>
+                      <p className="text-[10px] text-white/40">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-brand-400">{user.count}</p>
+                    <p className="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Issues</p>
+                  </div>
                 </div>
-                <div className="flex justify-between mt-2">
-                  <span className="text-[10px] text-white/20">{project.totalIssues} total</span>
-                  <span className="text-[10px] text-brand-400">{project.openIssues} remaining</span>
-                </div>
-              </div>
-            ))}
+              )) : (
+                <div className="py-8 text-center border border-dashed border-white/5 rounded-xl text-white/10 text-xs">No reporters yet</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

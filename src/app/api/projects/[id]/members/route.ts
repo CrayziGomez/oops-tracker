@@ -1,0 +1,134 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+async function isProjectAdmin(userId: string, projectId: string, globalRole: string) {
+  if (globalRole === "OWNER") return true;
+  const membership = await prisma.projectMember.findUnique({
+    where: { userId_projectId: { userId, projectId } },
+  });
+  return membership?.role === "PROJECT_ADMIN";
+}
+
+// GET all members of a project
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: projectId } = await params;
+
+  // Check if they have access to view this project at all
+  const hasAccess = await isProjectAdmin(session.user.id, projectId, session.user.role as string) || 
+    (await prisma.projectMember.findUnique({ where: { userId_projectId: { userId: session.user.id, projectId } } }));
+
+  if (!hasAccess && session.user.role !== "OWNER") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const members = await prisma.projectMember.findMany({
+    where: { projectId },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, role: true },
+      },
+    },
+    orderBy: { user: { name: "asc" } },
+  });
+
+  return NextResponse.json(members);
+}
+
+// POST add a member to a project
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: projectId } = await params;
+  const hasAdmin = await isProjectAdmin(session.user.id, projectId, session.user.role as string);
+
+  if (!hasAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const { userId, role } = await req.json();
+
+    if (!userId || !role) {
+      return NextResponse.json(
+        { error: "User ID and Role are required" },
+        { status: 400 }
+      );
+    }
+
+    const member = await prisma.projectMember.upsert({
+      where: { userId_projectId: { userId, projectId } },
+      update: { role },
+      create: { userId, projectId, role },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+      },
+    });
+
+    return NextResponse.json(member, { status: 201 });
+  } catch (error) {
+    console.error("Failed to add component:", error);
+    return NextResponse.json(
+      { error: "Failed to add member" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE a member from a project
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: projectId } = await params;
+  const hasAdmin = await isProjectAdmin(session.user.id, projectId, session.user.role as string);
+
+  if (!hasAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const userId = url.searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Don't let someone remove themselves if they are the only admin? Optional logic.
+
+    await prisma.projectMember.delete({
+      where: { userId_projectId: { userId, projectId } },
+    });
+
+    return NextResponse.json({ message: "Member removed" }, { status: 200 });
+  } catch (error) {
+    console.error("Failed to remove member:", error);
+    return NextResponse.json(
+      { error: "Failed to remove member" },
+      { status: 500 }
+    );
+  }
+}
