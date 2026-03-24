@@ -239,24 +239,6 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label htmlFor="user-role" className="text-sm font-medium text-white/60">
-                  Role
-                </label>
-                <select
-                  id="user-role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="USER" className="bg-surface-900">
-                    User
-                  </option>
-                  <option value="OWNER" className="bg-surface-900">
-                    Owner
-                  </option>
-                </select>
-              </div>
             </div>
             <div className="flex gap-3 justify-end">
               <button

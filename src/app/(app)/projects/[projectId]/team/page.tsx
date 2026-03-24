@@ -69,11 +69,9 @@ export default function ProjectTeamPage() {
   useEffect(() => {
     if (projectId) {
       fetchMembers();
-      if (session?.user?.role === "OWNER") {
-        fetchAvailableUsers();
-      }
+      fetchAvailableUsers();
     }
-  }, [projectId, fetchMembers, session]);
+  }, [projectId, fetchMembers]);
 
   // Wait until we determine if user is admin
   const isGlobalOwner = session?.user?.role === "OWNER";
@@ -101,6 +99,23 @@ export default function ProjectTeamPage() {
       console.error(err);
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole })
+      });
+      if (res.ok) {
+        await fetchMembers();
+      } else {
+        alert("Failed to change role.");
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -254,10 +269,21 @@ export default function ProjectTeamPage() {
                   </span>
                 </td>
                 <td className="p-4">
-                  <span className={`badge text-[10px] ${m.role === 'PROJECT_ADMIN' ? 'bg-brand-500/10 text-brand-400 border-brand-500/30' : 'bg-surface-800 text-white/50'}`}>
-                    {m.role === 'PROJECT_ADMIN' ? <Shield className="w-3 h-3 mr-1" /> : <User className="w-3 h-3 mr-1" />}
-                    {m.role}
-                  </span>
+                  {m.user.id !== session?.user?.id && m.user.role !== "OWNER" ? (
+                    <select
+                      value={m.role}
+                      onChange={(e) => handleChangeRole(m.user.id, e.target.value)}
+                      className="input-field py-1 px-2 text-xs"
+                    >
+                      <option value="PROJECT_REPORTER" className="bg-surface-900">PROJECT_REPORTER</option>
+                      <option value="PROJECT_ADMIN" className="bg-surface-900">PROJECT_ADMIN</option>
+                    </select>
+                  ) : (
+                    <span className={`badge text-[10px] ${m.role === 'PROJECT_ADMIN' ? 'bg-brand-500/10 text-brand-400 border-brand-500/30' : 'bg-surface-800 text-white/50'}`}>
+                      {m.role === 'PROJECT_ADMIN' ? <Shield className="w-3 h-3 mr-1" /> : <User className="w-3 h-3 mr-1" />}
+                      {m.role}
+                    </span>
+                  )}
                 </td>
                 <td className="p-4 text-right">
                   {m.user.id !== session?.user?.id && (!isGlobalOwner || m.user.role !== "OWNER") && (

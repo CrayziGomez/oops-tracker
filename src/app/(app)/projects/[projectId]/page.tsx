@@ -57,6 +57,9 @@ export default function ProjectIssuesPage() {
   const { activeProject, setActiveProject, projects } = useProject();
   const { data: session } = useSession();
 
+  const isGlobalOwner = session?.user?.role === "OWNER";
+  const isProjectAdmin = isGlobalOwner || activeProject?.members?.some((m: any) => m.role === "PROJECT_ADMIN");
+
   // Sync active project
   useEffect(() => {
     if (projectId && activeProject?.id !== projectId) {
@@ -109,7 +112,7 @@ export default function ProjectIssuesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {session?.user?.role === "OWNER" && (
+          {isProjectAdmin && (
             <button
               onClick={() => router.push(`/projects/${projectId}/team`)}
               className="btn-secondary hidden sm:flex"

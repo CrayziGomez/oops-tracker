@@ -31,7 +31,21 @@ export async function GET(
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
-  return NextResponse.json(issue);
+  let currentUserRole = "NONE";
+  if (session.user.role === "OWNER") {
+    currentUserRole = "OWNER";
+  } else {
+    const member = await prisma.projectMember.findUnique({
+      where: {
+        userId_projectId: { userId: session.user.id, projectId: issue.projectId },
+      },
+    });
+    if (member) {
+      currentUserRole = member.role; // PROJECT_ADMIN or PROJECT_REPORTER
+    }
+  }
+
+  return NextResponse.json({ ...issue, currentUserRole });
 }
 
 // PATCH update issue
@@ -47,36 +61,55 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json();
 
-  // Check permissions - Reporters can only update their own issues' status
   const existing = await prisma.issue.findUnique({
     where: { id },
-    select: { reporterId: true },
+    select: { reporterId: true, projectId: true },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
-  const isAdmin = session.user.role === "OWNER";
-  const isOwner = existing.reporterId === session.user.id;
+  const isGlobalOwner = session.user.role === "OWNER";
+  let projectMember = null;
 
-  if (!isAdmin && !isOwner) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isGlobalOwner) {
+    projectMember = await prisma.projectMember.findUnique({
+      where: {
+        userId_projectId: { userId: session.user.id, projectId: existing.projectId },
+      },
+    });
+
+    if (!projectMember) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
+  const isProjectAdmin = isGlobalOwner || projectMember?.role === "PROJECT_ADMIN";
+  const isReporter = !isProjectAdmin && projectMember?.role === "PROJECT_REPORTER";
+  const isCreator = existing.reporterId === session.user.id;
+
   const { title, description, status, severity, category } = body;
-  const isAuthorizedToEdit = isAdmin || isOwner;
 
   // Lifecycle Logic:
-  // If non-admin marks as DONE, move to IN_REVIEW instead.
+  // If a Tier 1 user tries to mark as DONE/ACTIONED, intercept and log as IN_REVIEW.
   let targetStatus = status;
-  if (!isAdmin && status === "DONE") {
+  if (isReporter && status && ["ACTIONED", "DONE", "ARCHIVED"].includes(status)) {
     targetStatus = "IN_REVIEW";
   }
 
-  const updateData: any = isAuthorizedToEdit
-    ? { title, description, status: targetStatus, severity, category }
-    : { status: targetStatus };
+  const canEditMetadata = isProjectAdmin || isCreator;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: any = {};
+  if (targetStatus) updateData.status = targetStatus;
+  
+  if (canEditMetadata) {
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (severity !== undefined) updateData.severity = severity;
+    if (category !== undefined) updateData.category = category;
+  }
 
   // Fetch old data for logging if needed
   const oldIssue = await prisma.issue.findUnique({
@@ -106,8 +139,8 @@ export async function PATCH(
       action: "STATUS_CHANGE",
       details: `Changed status from ${oldIssue.status} to ${targetStatus}`,
     });
-  } else if (isAdmin && (title || description || severity || category)) {
-      // Log generic edit for admins if other fields changed
+  } else if (canEditMetadata && Object.keys(updateData).length > 0 && (!updateData.status || Object.keys(updateData).length > 1)) {
+      // Log generic edit for metadata changes
       await logActivity({
         issueId: id,
         userId: session.user.id,
@@ -125,11 +158,34 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
+  const isGlobalOwner = session.user.role === "OWNER";
+
+  if (!isGlobalOwner) {
+    const existing = await prisma.issue.findUnique({
+      where: { id },
+      select: { projectId: true },
+    });
+    
+    if (!existing) {
+      return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+    }
+
+    const projectMember = await prisma.projectMember.findUnique({
+      where: {
+        userId_projectId: { userId: session.user.id, projectId: existing.projectId },
+      },
+    });
+
+    if (projectMember?.role !== "PROJECT_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   await prisma.issue.delete({ where: { id } });
 
   return NextResponse.json({ success: true });

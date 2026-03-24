@@ -15,7 +15,35 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const whereClause = projectId ? { projectId } : {};
+  const isOwner = session.user.role === "OWNER";
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const issueWhere: any = {};
+  if (projectId) issueWhere.projectId = projectId;
+  if (!isOwner) {
+    issueWhere.project = {
+      members: { some: { userId: session.user.id } }
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectWhere: any = {};
+  if (projectId) projectWhere.id = projectId;
+  if (!isOwner) {
+    projectWhere.members = { some: { userId: session.user.id } };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const activityWhere: any = {};
+  if (projectId) {
+    activityWhere.issue = { projectId };
+  }
+  if (!isOwner) {
+    activityWhere.issue = {
+      ...activityWhere.issue,
+      project: { members: { some: { userId: session.user.id } } }
+    };
+  }
 
   const [
     totalOpen,
@@ -27,23 +55,23 @@ export async function GET(req: NextRequest) {
   ] = await Promise.all([
     // Total open issues
     prisma.issue.count({
-      where: { status: "OPEN", ...whereClause },
+      where: { status: "OPEN", ...issueWhere },
     }),
     // Total critical issues
     prisma.issue.count({
-      where: { severity: "CRITICAL", status: { not: "ARCHIVED" }, ...whereClause },
+      where: { severity: "CRITICAL", status: { not: "ARCHIVED" }, ...issueWhere },
     }),
     // Issues progressed this week (moved to ACTIONED, IN_REVIEW, or DONE)
     prisma.issue.count({
       where: {
         status: { in: ["ACTIONED", "IN_REVIEW", "DONE"] },
         updatedAt: { gte: weekAgo },
-        ...whereClause,
+        ...issueWhere,
       },
     }),
     // Recent activity (last 5 modified issues)
     prisma.issue.findMany({
-      where: whereClause,
+      where: issueWhere,
       take: 5,
       orderBy: { updatedAt: "desc" },
       include: {
@@ -53,7 +81,7 @@ export async function GET(req: NextRequest) {
     }),
     // Per-project open issue counts (only return the filtered one if projectId is set)
     prisma.project.findMany({
-      where: projectId ? { id: projectId } : {},
+      where: projectWhere,
       include: {
         _count: {
           select: { issues: true },
@@ -66,7 +94,7 @@ export async function GET(req: NextRequest) {
     }),
     // Recent activity logs
     prisma.activityLog.findMany({
-      where: projectId ? { issue: { projectId } } : {},
+      where: activityWhere,
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {

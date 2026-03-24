@@ -22,32 +22,59 @@ export async function GET() {
       _count: {
         select: { issues: true },
       },
+      members: {
+        where: isOwner ? undefined : { userId: session.user.id },
+        select: { role: true },
+      },
     },
   });
 
   return NextResponse.json(projects);
 }
 
-// POST create project (Admin only)
+// POST create project (Owner or Project Admin only)
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const isOwner = session.user.role === "OWNER";
+  
+  if (!isOwner) {
+    const adminOf = await prisma.projectMember.findFirst({
+      where: { userId: session.user.id, role: "PROJECT_ADMIN" },
+    });
+    if (!adminOf) {
+      return NextResponse.json({ error: "Forbidden: Only Owners or existing Project Admins can create projects." }, { status: 403 });
+    }
   }
 
   try {
     const body = await req.json();
     const { name, description } = body;
 
-    if (!name) {
+    if (!name?.trim()) {
       return NextResponse.json(
         { error: "Project name is required" },
         { status: 400 }
       );
     }
 
-    const project = await prisma.project.create({
-      data: { name, description },
+    const project = await prisma.$transaction(async (tx) => {
+      const newProject = await tx.project.create({
+        data: { name: name.trim(), description: description?.trim() },
+      });
+
+      await tx.projectMember.create({
+        data: {
+          userId: session.user.id as string,
+          projectId: newProject.id,
+          role: "PROJECT_ADMIN", // automatically make them an admin
+        },
+      });
+
+      return newProject;
     });
 
     return NextResponse.json(project, { status: 201 });

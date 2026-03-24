@@ -31,6 +31,8 @@ export function Header() {
   const pathname = usePathname();
 
   const isAdmin = session?.user?.role === "OWNER";
+  const isProjectAdmin = projects.some((p: any) => p.members?.[0]?.role === "PROJECT_ADMIN");
+  const canManageProjects = isAdmin || isProjectAdmin;
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -45,7 +47,6 @@ export function Header() {
       : []),
     ...(isAdmin
       ? [
-          { href: "/admin/projects", label: "Projects", icon: FolderKanban },
           { href: "/admin/users", label: "Users", icon: Users },
         ]
       : []),
@@ -178,7 +179,7 @@ export function Header() {
                         )}
                       </button>
                     ))}
-                    {isAdmin && (
+                    {canManageProjects && (
                       <>
                         <div className="border-t border-white/5 my-1" />
                         <button
@@ -188,8 +189,8 @@ export function Header() {
                           }}
                           className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-brand-400 hover:bg-white/5 transition-colors"
                         >
-                          <Plus className="w-4 h-4" />
-                          New Project
+                          <Settings className="w-4 h-4" />
+                          Manage Projects
                         </button>
                       </>
                     )}
@@ -208,8 +209,14 @@ export function Header() {
                 <div className="text-sm font-medium text-white/90">
                   {session?.user?.name}
                 </div>
-                <div className="text-xs text-white/40">
-                  {session?.user?.role}
+                <div className="text-xs text-white/40 uppercase font-medium">
+                  {isAdmin
+                    ? "Owner"
+                    : activeProject
+                    ? isProjectAdmin
+                      ? "Project Admin"
+                      : "Project Reporter"
+                    : "User"}
                 </div>
               </button>
               <button
@@ -266,7 +273,7 @@ export function Header() {
                 </button>
               );
             })}
-            {isAdmin && (
+            {canManageProjects && (
               <div className="border-t border-white/5 pt-2 mt-2">
                 <button
                   onClick={() => {
@@ -276,7 +283,7 @@ export function Header() {
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-white/40 hover:text-white hover:bg-white/5 transition-all"
                 >
                   <Settings className="w-5 h-5" />
-                  Settings
+                  Manage Projects
                 </button>
               </div>
             )}

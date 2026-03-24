@@ -8,6 +8,7 @@ interface Project {
   name: string;
   description?: string;
   _count?: { issues: number };
+  members?: { role: string }[];
 }
 
 interface ProjectContextType {

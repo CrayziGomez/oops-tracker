@@ -56,6 +56,7 @@ interface Issue {
   reporter: { id: string; name: string; email: string };
   project: { id: string; name: string };
   attachments: Attachment[];
+  currentUserRole?: string;
 }
 
 const statuses = ["OPEN", "ACTIONED", "IN_REVIEW", "DONE", "ARCHIVED"];
@@ -82,7 +83,8 @@ export default function IssueDetailPage() {
   const projectId = params.projectId as string;
   const { data: session } = useSession();
 
-  const isAdmin = session?.user?.role === "OWNER";
+  const isGlobalOwner = session?.user?.role === "OWNER";
+  const isAdmin = isGlobalOwner || issue?.currentUserRole === "PROJECT_ADMIN";
   const isOwner = issue?.reporter.id === session?.user?.id;
   const canEdit = isAdmin || isOwner;
 
@@ -539,13 +541,22 @@ export default function IssueDetailPage() {
             {isAdmin && (
               <>
                 {issue.status === "IN_REVIEW" && (
-                  <button
-                    onClick={() => handleStatusChange("DONE")}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Approve & Close
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleStatusChange("DONE")}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Approve & Close
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange("OPEN")}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-bold transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                      Ask for Revisions
+                    </button>
+                  </>
                 )}
                 
                 {issue.status !== "ARCHIVED" && (

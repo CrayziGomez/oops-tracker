@@ -28,7 +28,7 @@ export default authMiddleware((req) => {
   }
 
   // Admin-only routes
-  if (pathname.startsWith("/admin") && req.auth.user?.role !== "OWNER") {
+  if (pathname.startsWith("/admin/users") && req.auth.user?.role !== "OWNER") {
     const dashboardUrl = req.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
     return NextResponse.redirect(dashboardUrl);
