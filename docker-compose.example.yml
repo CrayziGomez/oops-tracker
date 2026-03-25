@@ -12,7 +12,7 @@ services:
     container_name: oops-tracker
     restart: unless-stopped
     ports:
-      - "3003:3000"       # Change left side to your preferred host port
+      - "3003:3000" # Change left side to your preferred host port
     environment:
       # SQLite database path — do not change unless you know what you're doing
       - DATABASE_URL=file:/app/data/dev.db
@@ -35,9 +35,16 @@ services:
       - SEED_ADMIN_PASSWORD=<change-me>
       - SEED_REPORTER_PASSWORD=<change-me>
 
+      # --- Onboarding & Notifications (Brevo) ---
+      # Required for project invitations and status updates
+      - AUTH_URL=https://oops.2bso.com
+      - OOPS_BREV_KEY=<your-brevo-api-key>
+      - BREVO_SENDER_NAME=Oops Updates
+      - BREVO_SENDER_EMAIL=updates@oops.2bso.com
+
     volumes:
-      - oops_data:/app/data          # Persists the SQLite database
-      - oops_uploads:/app/public/uploads  # Persists uploaded files
+      - oops_data:/app/data # Persists the SQLite database
+      - oops_uploads:/app/public/uploads # Persists uploaded files
 
 volumes:
   oops_data:
