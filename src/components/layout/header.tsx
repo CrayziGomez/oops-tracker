@@ -18,8 +18,10 @@ import {
   Settings,
   Sun,
   Moon,
+  Bell,
 } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Header() {
   const { data: session } = useSession();
@@ -219,6 +221,7 @@ export function Header() {
                     : "User"}
                 </div>
               </button>
+              <NotificationBell />
               <button
                 onClick={() => router.push("/profile")}
                 className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-xs font-bold hover:opacity-80 transition-opacity"

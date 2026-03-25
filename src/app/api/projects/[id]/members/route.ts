@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendInvitationEmail } from "@/lib/email";
+import crypto from "crypto";
 
 async function isProjectAdmin(userId: string, projectId: string, globalRole: string) {
   if (globalRole === "OWNER") return true;
@@ -61,25 +63,70 @@ export async function POST(
   }
 
   try {
-    const { userId, role } = await req.json();
+    const { userId, email, role } = await req.json();
 
-    if (!userId || !role) {
+    if ((!userId && !email) || !role) {
       return NextResponse.json(
-        { error: "User ID and Role are required" },
+        { error: "User ID or Email and Role are required" },
         { status: 400 }
       );
     }
 
+    let targetUserId = userId;
+
+    // If email is provided, try to find the user
+    if (email) {
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase().trim() },
+        select: { id: true }
+      });
+
+      if (user) {
+        targetUserId = user.id;
+      } else {
+        // User doesn't exist, create an invitation
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+
+        const invitation = await prisma.projectInvitation.create({
+          data: {
+            email: email.toLowerCase().trim(),
+            projectId,
+            inviterId: session.user.id,
+            role,
+            token,
+            expiresAt,
+          },
+          include: { project: true }
+        });
+
+        // Send email
+        const inviteUrl = `${process.env.AUTH_URL || 'http://localhost:3000'}/invite?token=${token}`;
+        await sendInvitationEmail(invitation.email, invitation.project.name, inviteUrl);
+
+        return NextResponse.json({ 
+          message: "Invitation sent", 
+          invitationId: invitation.id,
+          status: "INVITED" 
+        }, { status: 201 });
+      }
+    }
+
+    if (!targetUserId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const member = await prisma.projectMember.upsert({
-      where: { userId_projectId: { userId, projectId } },
+      where: { userId_projectId: { userId: targetUserId, projectId } },
       update: { role },
-      create: { userId, projectId, role },
+      create: { userId: targetUserId, projectId, role },
       include: {
         user: { select: { id: true, name: true, email: true, role: true } },
       },
     });
 
-    return NextResponse.json(member, { status: 201 });
+    return NextResponse.json({ ...member, status: "ADDED" }, { status: 201 });
   } catch (error) {
     console.error("Failed to add component:", error);
     return NextResponse.json(

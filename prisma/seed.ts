@@ -12,6 +12,10 @@ async function main() {
   const adminPass = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
   const reporterPass = process.env.SEED_REPORTER_PASSWORD ?? "reporter123";
 
+  // Clean up new tables early
+  await prisma.notification.deleteMany({});
+  await prisma.projectInvitation.deleteMany({});
+
   if (!process.env.SEED_ADMIN_PASSWORD) {
     console.warn("⚠️  SEED_ADMIN_PASSWORD not set — using default 'admin123'. Change this in production!");
   }

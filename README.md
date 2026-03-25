@@ -16,6 +16,8 @@ OOPS is a self-hosted issue tracker with a premium **dark-mode aesthetic** and *
 - **💬 Comments**: Discussion threads on every issue.
 - **📎 Attachments**: Upload images, logs, and documents to issues.
 - **📊 Dashboard**: High-level overview of system metrics and activity.
+- **📩 Project Invitations**: Invite new team members by email address.
+- **🔔 Notification Center**: Real-time in-app alerts and email notifications for issue updates.
 - **🌑 Dark UI**: Built with Tailwind CSS 4 and Lucide icons.
 
 ---
@@ -143,6 +145,10 @@ All settings are environment variables in your `docker-compose.yml`:
 | `SEED_REPORTER_PASSWORD` | ✅ | Password for the default user account (set before first boot) |
 | `SEED_ADMIN_EMAIL` | optional | Owner login email. Default: `admin@oops.local` |
 | `SEED_REPORTER_EMAIL` | optional | User login email. Default: `reporter@oops.local` |
+| `OOPS_BREV_KEY` | optional | Brevo API Key for transactional emails. |
+| `BREVO_SENDER_NAME` | optional | Display name for outgoing emails (e.g. "OOPS Updates") |
+| `BREVO_SENDER_EMAIL` | optional | Verified sender email address in your Brevo account |
+| `AUTH_URL` | optional | Public URL of the app (used for invitation links) |
 
 > [!IMPORTANT]
 > Seed passwords and emails are only applied **once**, on the very first boot when the database is created. To change them after that, update the account via the admin panel inside the app.

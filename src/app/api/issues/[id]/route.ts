@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
+import { sendIssueNotification } from "@/lib/email";
+import { Notification } from "@prisma/client";
 
 // GET single issue
 export async function GET(
@@ -131,7 +133,7 @@ export async function PATCH(
     },
   });
 
-  // Log Activity
+  // Log Activity and Notify
   if (oldIssue && targetStatus && oldIssue.status !== targetStatus) {
     await logActivity({
       issueId: id,
@@ -139,6 +141,36 @@ export async function PATCH(
       action: "STATUS_CHANGE",
       details: `Changed status from ${oldIssue.status} to ${targetStatus}`,
     });
+
+    // Notify Reporter (if not the one who changed it)
+    if (issue.reporterId !== session.user.id) {
+      const title = "Issue Status Updated";
+      const message = `The issue "${issue.title}" was marked as ${targetStatus}.`;
+      const link = `/issues/${id}`;
+
+      // In-app notification
+      await prisma.notification.create({
+        data: {
+          userId: issue.reporterId,
+          title,
+          message,
+          type: "ISSUE_UPDATE",
+          link,
+        },
+      });
+
+      // Email notification
+      try {
+        await sendIssueNotification({
+          to: issue.reporter.email,
+          issueTitle: issue.title,
+          action: targetStatus,
+          issueUrl: `${process.env.AUTH_URL || 'http://localhost:3000'}${link}`,
+        });
+      } catch (emailError) {
+        console.error("Failed to send notification email:", emailError);
+      }
+    }
   } else if (canEditMetadata && Object.keys(updateData).length > 0 && (!updateData.status || Object.keys(updateData).length > 1)) {
       // Log generic edit for metadata changes
       await logActivity({

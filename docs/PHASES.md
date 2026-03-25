@@ -20,13 +20,18 @@ This document tracks the progress of the OOPS Issue Tracker and serves as a remi
 *   [x] **User Leaderboard**: New Dashboard widget for "Top Reporters" (most issues logged).
 *   [x] **Admin Controls**: Manage user project assignments and privileges.
 
-## 📡 Phase 4: Onboarding & Notifications (Next)
-*   [ ] **Self Registration**: Allow users to register accounts directly. Admins can then assign them to specific projects.
-*   [ ] **User Onboarding Tutorial**: Registered users land on a basic instructions page explaining the app and reporting functionality, with an option to skip.
-*   [ ] **Email Alerts**: Transactional emails for status changes and assignments.
-*   [ ] **Messenger Integration**: Telegram or WhatsApp bot notifications for urgent alerts.
-*   [ ] **User Reminders**: Automated reminders for stagnant issues or pending reviews.
+## ✅ Phase 4: Onboarding & Communications (Completed)
+*   **Project Invitations**: `ProjectInvitation` model and tokens for secure onboarding.
+*   **In-App Notifications**: `Notification` center in the header for status updates.
+*   **Self Registration**: Users join projects and set up accounts via invitation links.
+*   **Email Alerts**: Transactional emails (via Brevo) for invitations and status changes.
+
+## 🚀 Phase 5: Advanced Issue Management (Future DB Changes to Anticipate)
+*   [ ] **Custom Tags / Labels (DB Change)**: Introduce a `Tag` model and a many-to-many relationship with `Issue`. Allowing custom organization beyond standard categories (e.g., "frontend", "needs-design", "v1.0-release").
+*   [ ] **Milestones / Sprints (DB Change)**: Introduce a `Milestone` model to group issues into targets, sprints, or versions for better project tracking.
+*   [ ] **Issue Linking (DB Change)**: Introduce an `IssueLink` model to establish relationships between issues (e.g., "Issue A *blocks* Issue B", "Issue C *duplicates* Issue D").
+*   [ ] **Time Logging (DB Change)**: Introduce a `TimeEntry` model to allow developers/reporters to track hours worked on specific issues.
 
 ---
 
-*Last Updated: 2026-03-24*
+*Last Updated: 2026-03-25*

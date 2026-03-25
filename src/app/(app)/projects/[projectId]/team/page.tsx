@@ -33,6 +33,7 @@ export default function ProjectTeamPage() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
   const [selectedRole, setSelectedRole] = useState("PROJECT_REPORTER");
   const [isAdding, setIsAdding] = useState(false);
   
@@ -80,23 +81,35 @@ export default function ProjectTeamPage() {
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) return;
+    if (!selectedUser && !inviteEmail) return;
     setIsAdding(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedUser, role: selectedRole })
+        body: JSON.stringify({ 
+          userId: selectedUser || undefined, 
+          email: inviteEmail || undefined,
+          role: selectedRole 
+        })
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.status === "INVITED") {
+          alert(`Invitation sent to ${inviteEmail}`);
+        }
         await fetchMembers();
         setShowAddMember(false);
         setSelectedUser("");
+        setInviteEmail("");
+        setSearchQuery("");
       } else {
-        alert("Failed to add member.");
+        const err = await res.json();
+        alert(err.error || "Failed to add member.");
       }
     } catch (err) {
       console.error(err);
+      alert("An unexpected error occurred.");
     } finally {
       setIsAdding(false);
     }
@@ -188,31 +201,57 @@ export default function ProjectTeamPage() {
           <form onSubmit={handleAddMember} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white/60">Select User</label>
+                <label className="text-sm font-medium text-white/60">Identify User</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <input 
                     type="text" 
-                    placeholder="Search users..." 
+                    placeholder="Search users or enter email..." 
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      // If it looks like an email and doesn't match a user, set it as invite email
+                      if (e.target.value.includes('@')) {
+                        setInviteEmail(e.target.value.trim());
+                        setSelectedUser("");
+                      } else {
+                        setInviteEmail("");
+                      }
+                    }}
                     className="input-field pl-10 mb-2" 
                   />
                 </div>
-                <select 
-                  size={4}
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="input-field w-full h-32"
-                  required
-                >
-                  {unassignedUsers.map(u => (
-                    <option key={u.id} value={u.id} className="p-2 hover:bg-white/5 rounded">
-                      {u.name} ({u.email})
-                    </option>
-                  ))}
-                  {unassignedUsers.length === 0 && <option disabled>No users found</option>}
-                </select>
+                
+                {unassignedUsers.length > 0 && (
+                  <select 
+                    size={4}
+                    value={selectedUser}
+                    onChange={(e) => {
+                      setSelectedUser(e.target.value);
+                      setInviteEmail("");
+                      setSearchQuery(""); // Clear search once selected
+                    }}
+                    className="input-field w-full h-32"
+                  >
+                    {unassignedUsers.map(u => (
+                      <option key={u.id} value={u.id} className="p-2 hover:bg-white/5 rounded">
+                        {u.name} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {inviteEmail && !selectedUser && (
+                  <div className="p-3 rounded-xl bg-brand-500/10 border border-brand-500/20 flex flex-col gap-1 mt-2">
+                    <span className="text-xs text-white/40 font-medium uppercase">External Invitation</span>
+                    <span className="text-sm text-brand-400 font-semibold">{inviteEmail}</span>
+                    <p className="text-[10px] text-white/30">User not found. We'll send them an invitation link.</p>
+                  </div>
+                )}
+                
+                {!inviteEmail && !selectedUser && searchQuery && unassignedUsers.length === 0 && (
+                  <p className="text-xs text-white/30 italic p-2">No existing users found matching "{searchQuery}"</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white/60">Project Role</label>
@@ -230,9 +269,24 @@ export default function ProjectTeamPage() {
               </div>
             </div>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setShowAddMember(false)} className="btn-secondary">Cancel</button>
-              <button type="submit" disabled={!selectedUser || isAdding} className="btn-primary">
-                {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add to Project"}
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowAddMember(false);
+                  setSearchQuery("");
+                  setInviteEmail("");
+                  setSelectedUser("");
+                }} 
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={(!selectedUser && !inviteEmail) || isAdding} 
+                className="btn-primary"
+              >
+                {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : (inviteEmail ? "Send Invitation" : "Add to Project")}
               </button>
             </div>
           </form>

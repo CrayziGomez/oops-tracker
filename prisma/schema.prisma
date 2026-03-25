@@ -19,6 +19,8 @@ model User {
   issues       Issue[]       @relation("ReportedIssues")
   activityLogs ActivityLog[]
   projectMembers  ProjectMember[]
+  invitationsSent ProjectInvitation[] @relation("Inviter")
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -31,6 +33,7 @@ model Project {
   updatedAt   DateTime @updatedAt
   issues      Issue[]
   members     ProjectMember[]
+  invitations ProjectInvitation[]
 
   @@map("projects")
 }
@@ -119,4 +122,42 @@ model ProjectMember {
   @@index([userId])
   @@index([projectId])
   @@map("project_members")
+}
+
+model ProjectInvitation {
+  id        String   @id @default(cuid())
+  email     String
+  projectId String
+  inviterId String
+  token     String   @unique
+  role      String   @default("PROJECT_REPORTER") // PROJECT_ADMIN or PROJECT_REPORTER
+  status    String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter User    @relation("Inviter", fields: [inviterId], references: [id])
+
+  @@index([projectId])
+  @@index([inviterId])
+  @@index([token])
+  @@map("project_invitations")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String // ISSUE_UPDATE, PROJECT_INVITE, etc.
+  link      String? // Optional link to the relevant page
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
 }
