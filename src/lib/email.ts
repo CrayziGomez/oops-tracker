@@ -18,8 +18,9 @@ export async function sendEmail({
   textContent?: string;
 }) {
   if (!apiKey) {
-    console.warn("OOPS_BREV_KEY is not set. Email will not be sent.");
-    return null;
+    const error = "OOPS_BREV_KEY is not set. Transactional emails cannot be sent.";
+    console.error(error);
+    throw new Error(error);
   }
 
   try {
