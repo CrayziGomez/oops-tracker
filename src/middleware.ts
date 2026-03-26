@@ -7,6 +7,7 @@ export default authMiddleware((req) => {
   // Allow public paths
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/invite") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
