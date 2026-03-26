@@ -78,7 +78,7 @@ function InviteForm() {
           await signIn("credentials", {
             email: invitationInfo.email,
             password,
-            callbackUrl: "/dashboard",
+            callbackUrl: window.location.origin + "/dashboard",
           });
         }, 1500);
       } else {

@@ -161,11 +161,15 @@ export async function PATCH(
 
       // Email notification
       try {
+        const host = req.headers.get("host");
+        const protocol = req.headers.get("x-forwarded-proto") || "http";
+        const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+        
         await sendIssueNotification({
           to: issue.reporter.email,
           issueTitle: issue.title,
           action: targetStatus,
-          issueUrl: `${process.env.AUTH_URL || 'http://localhost:3000'}${link}`,
+          issueUrl: `${baseUrl}${link}`,
         });
       } catch (emailError) {
         console.error("Failed to send notification email:", emailError);

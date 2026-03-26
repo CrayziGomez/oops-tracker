@@ -102,7 +102,10 @@ export async function POST(
         });
 
         // Send email
-        const inviteUrl = `${process.env.AUTH_URL || 'http://localhost:3000'}/invite?token=${token}`;
+        const host = req.headers.get("host");
+        const protocol = req.headers.get("x-forwarded-proto") || "http";
+        const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+        const inviteUrl = `${baseUrl}/invite?token=${token}`;
         await sendInvitationEmail(invitation.email, invitation.project.name, inviteUrl);
 
         return NextResponse.json({ 
