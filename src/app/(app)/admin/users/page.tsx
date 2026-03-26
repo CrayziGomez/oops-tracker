@@ -25,6 +25,7 @@ interface UserItem {
   role: string;
   createdAt: string;
   _count: { issues: number };
+  projectMembers?: { projectId: string }[];
 }
 
 export default function AdminUsersPage() {
