@@ -137,7 +137,23 @@ export default function AdminUsersPage() {
         await fetchUsers();
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to delete user");
+        
+        // If it's a history error, ask for Force Delete
+        if (err.error === "Cannot delete user with active history") {
+          if (confirm(`${err.details}\n\nWould you like to FORCE DELETE this user? Their issues and comments will be reassigned to YOU to preserve history.`)) {
+            const forceRes = await fetch(`/api/users/${id}?force=true`, { method: "DELETE" });
+            if (forceRes.ok) {
+              await fetchUsers();
+              return;
+            } else {
+              const forceErr = await forceRes.json();
+              alert(forceErr.error || "Force delete failed");
+            }
+          }
+        } else {
+          const message = err.details ? `${err.error}: ${err.details}` : (err.error || "Failed to delete user");
+          alert(message);
+        }
       }
     } catch (err) {
       console.error("Failed to delete user:", err);
@@ -300,6 +316,14 @@ export default function AdminUsersPage() {
                     <Mail className="w-3 h-3 text-white/20" />
                     <span className="text-sm text-white/40">{user.email}</span>
                   </div>
+                  {user.projectMembers && user.projectMembers.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <Shield className="w-3 h-3 text-brand-400/60" />
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-brand-400/60">
+                        Project Admin ({user.projectMembers.length})
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">

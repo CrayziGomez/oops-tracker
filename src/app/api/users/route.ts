@@ -12,6 +12,10 @@ export async function GET() {
         createdAt: true,
         _count: {
           select: { issues: true }
+        },
+        projectMembers: {
+          where: { role: "PROJECT_ADMIN" },
+          select: { projectId: true }
         }
       },
       orderBy: { name: "asc" },

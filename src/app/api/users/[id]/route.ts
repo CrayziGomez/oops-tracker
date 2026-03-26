@@ -104,6 +104,8 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    const force = searchParams.get("force") === "true";
 
     // Check if user exists
     const user = await prisma.user.findUnique({
@@ -118,6 +120,76 @@ export async function DELETE(
     if (user.id === session.user.id) {
       return NextResponse.json(
         { error: "You cannot delete your own account" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user is the last OWNER
+    if (user.role === "OWNER") {
+      const ownerCount = await prisma.user.count({ where: { role: "OWNER" } });
+      if (ownerCount <= 1) {
+        return NextResponse.json(
+          { error: "Cannot delete the last Owner account" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check for related records that would block deletion
+    const [issuesCount, commentsCount] = await Promise.all([
+      prisma.issue.count({ where: { reporterId: id } }),
+      prisma.comment.count({ where: { authorId: id } }),
+    ]);
+
+    if (issuesCount > 0 || commentsCount > 0) {
+      if (force) {
+        // Perform reassignment (Force Delete)
+        await prisma.$transaction([
+          prisma.issue.updateMany({
+            where: { reporterId: id },
+            data: { reporterId: session.user.id },
+          }),
+        ]);
+
+        // For comments, we want to preserve content but mark as author-deleted.
+        // updateMany with concat is hard in Prisma/SQLite, so we do it in a transaction
+        const userComments = await prisma.comment.findMany({
+          where: { authorId: id }
+        });
+
+        for (const comment of userComments) {
+          await prisma.comment.update({
+            where: { id: comment.id },
+            data: {
+              content: `${comment.content}\n\n(Original author deleted)`,
+              authorId: session.user.id
+            }
+          });
+        }
+      } else {
+        return NextResponse.json(
+          { 
+            error: "Cannot delete user with active history", 
+            details: `This user has ${issuesCount} issues and ${commentsCount} comments. Reassign or delete these records first.` 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check if they are the only admin for any projects
+    const adminMemberships = await prisma.projectMember.findMany({
+      where: { userId: id, role: "PROJECT_ADMIN" },
+      include: { project: { select: { name: true, _count: { select: { members: { where: { role: "PROJECT_ADMIN" } } } } } } }
+    });
+
+    const soleAdminProjects = adminMemberships.filter((m: any) => m.project._count.members <= 1);
+    if (soleAdminProjects.length > 0) {
+      return NextResponse.json(
+        { 
+          error: "Cannot delete the sole Administrator of a project",
+          details: `User is the only admin for: ${soleAdminProjects.map((m: any) => m.project.name).join(", ")}` 
+        },
         { status: 400 }
       );
     }
