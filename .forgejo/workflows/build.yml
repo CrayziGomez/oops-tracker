@@ -1,3 +1,10 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: docker
@@ -16,22 +23,3 @@ jobs:
       - name: Push image
         run: |
           docker push forg.2bso.com/crayzi/oops-2bso-app:latest
-
-      - name: Deploy to worker node
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 192.168.1.121 >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_ed25519 crayzi@192.168.1.121 "\
-            docker pull forg.2bso.com/crayzi/oops-2bso-app:latest && \
-            docker stop oops-tracker && \
-            docker rm oops-tracker && \
-            docker run -d \
-              --name oops-tracker \
-              --restart unless-stopped \
-              -p 3003:3000 \
-              -v opps-tracker_oops_data:/app/data \
-              -v opps-tracker_oops_uploads:/app/public/uploads \
-              --env-file /home/crayzi/.env.oops \
-              forg.2bso.com/crayzi/oops-2bso-app:latest"
