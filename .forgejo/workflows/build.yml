@@ -1,0 +1,25 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: docker
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Forgejo Registry
+        run: |
+          echo "${{ secrets.REGISTRY_TOKEN }}" | docker login forg.2bso.com -u ${{ secrets.REGISTRY_USER }} --password-stdin
+
+      - name: Build image
+        run: |
+          docker build -t forg.2bso.com/crayzi/oops-2bso-app:latest .
+
+      - name: Push image
+        run: |
+          docker push forg.2bso.com/crayzi/oops-2bso-app:latest
