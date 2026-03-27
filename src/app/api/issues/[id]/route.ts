@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
-import { Notification } from "@prisma/client";
 
 // GET single issue
 export async function GET(
@@ -91,7 +90,7 @@ export async function PATCH(
   const isReporter = !isProjectAdmin && projectMember?.role === "PROJECT_REPORTER";
   const isCreator = existing.reporterId === session.user.id;
 
-  const { title, description, status, severity, category } = body;
+  const { title, description, status, severity, category, revisionReason } = body;
 
   // Lifecycle Logic:
   // If a Tier 1 user tries to mark as DONE/ACTIONED, intercept and log as IN_REVIEW.
@@ -133,19 +132,36 @@ export async function PATCH(
     },
   });
 
+  // Handle Revision Feedback if provided
+  if (revisionReason && isProjectAdmin) {
+    await prisma.comment.create({
+      data: {
+        content: `[REVISION REQUIRED]: ${revisionReason}`,
+        issueId: id,
+        authorId: session.user.id,
+      },
+    });
+  }
+
   // Log Activity and Notify
   if (oldIssue && targetStatus && oldIssue.status !== targetStatus) {
+    const statusChangeDetails = revisionReason 
+      ? `Changed status from ${oldIssue.status} to ${targetStatus} (Reason: ${revisionReason})`
+      : `Changed status from ${oldIssue.status} to ${targetStatus}`;
+
     await logActivity({
       issueId: id,
       userId: session.user.id,
       action: "STATUS_CHANGE",
-      details: `Changed status from ${oldIssue.status} to ${targetStatus}`,
+      details: statusChangeDetails,
     });
 
     // Notify Reporter (if not the one who changed it)
     if (issue.reporterId !== session.user.id) {
       const title = "Issue Status Updated";
-      const message = `The issue "${issue.title}" was marked as ${targetStatus}.`;
+      const message = revisionReason
+        ? `The issue "${issue.title}" was marked as ${targetStatus}. Feedback: ${revisionReason}`
+        : `The issue "${issue.title}" was marked as ${targetStatus}.`;
       const link = `/issues/${id}`;
 
       // In-app notification
@@ -168,7 +184,7 @@ export async function PATCH(
         await sendIssueNotification({
           to: issue.reporter.email,
           issueTitle: issue.title,
-          action: targetStatus,
+          action: targetStatus + (revisionReason ? ` (Feedback: ${revisionReason})` : ""),
           issueUrl: `${baseUrl}${link}`,
         });
       } catch (emailError) {
@@ -176,6 +192,7 @@ export async function PATCH(
       }
     }
   } else if (canEditMetadata && Object.keys(updateData).length > 0 && (!updateData.status || Object.keys(updateData).length > 1)) {
+
       // Log generic edit for metadata changes
       await logActivity({
         issueId: id,

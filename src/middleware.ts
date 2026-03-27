@@ -10,7 +10,8 @@ export default authMiddleware((req) => {
     pathname.startsWith("/invite") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/uploads")
   ) {
     return NextResponse.next();
   }

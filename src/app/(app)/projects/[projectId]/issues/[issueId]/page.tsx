@@ -20,7 +20,9 @@ import {
   MessageSquare,
   Send,
   CheckCircle2,
+  Undo2,
 } from "lucide-react";
+import RevisionModal from "@/components/issues/RevisionModal";
 import {
   formatDate,
   formatRelativeTime,
@@ -71,6 +73,7 @@ export default function IssueDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
   
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -189,9 +192,29 @@ export default function IssueDetailPage() {
       if (res.ok) {
         const updated = await res.json();
         setIssue(updated);
+        // Refresh comments if it was a status change that might have added one
+        fetchComments();
       }
     } catch (error) {
       console.error("Failed to update status:", error);
+    }
+  };
+
+  const handleRequestRevision = async (reason: string) => {
+    try {
+      const res = await fetch(`/api/issues/${issueId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "OPEN", revisionReason: reason }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setIssue(updated);
+        fetchComments();
+      }
+    } catch (error) {
+      console.error("Failed to request revision:", error);
+      throw error;
     }
   };
 
@@ -550,10 +573,10 @@ export default function IssueDetailPage() {
                       Approve & Close
                     </button>
                     <button
-                      onClick={() => handleStatusChange("OPEN")}
+                      onClick={() => setShowRevisionModal(true)}
                       className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-bold transition-all"
                     >
-                      <X className="w-4 h-4" />
+                      <Undo2 className="w-4 h-4" />
                       Ask for Revisions
                     </button>
                   </>
@@ -638,7 +661,7 @@ export default function IssueDetailPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowDeleteConfirm(false)}
           />
-          <div className="relative card p-6 max-w-sm w-full animate-fade-in">
+          <div className="relative card p-6 max-w-sm w-full animate-fade-in shadow-2xl">
             <button
               onClick={() => setShowDeleteConfirm(false)}
               className="absolute top-4 right-4 p-1 rounded-lg text-white/30 hover:text-white transition-colors"
@@ -653,7 +676,7 @@ export default function IssueDetailPage() {
                 Delete Issue
               </h3>
             </div>
-            <p className="text-sm text-white/50 mb-6">
+            <p className="text-sm text-white/50 mb-6 leading-relaxed">
               Are you sure you want to delete &ldquo;{issue.title}&rdquo;?
               This action cannot be undone.
             </p>
@@ -672,6 +695,13 @@ export default function IssueDetailPage() {
           </div>
         </div>
       )}
+
+      <RevisionModal
+        isOpen={showRevisionModal}
+        onClose={() => setShowRevisionModal(false)}
+        onSubmit={handleRequestRevision}
+        issueTitle={issue.title}
+      />
     </div>
   );
 }
