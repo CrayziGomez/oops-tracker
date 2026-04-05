@@ -12,9 +12,6 @@ export const metadata: Metadata = {
   title: "OOPS - Issue Tracker",
   description:
     "Observations, Outages, Problems, Suggestions — Modern Issue Tracking",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

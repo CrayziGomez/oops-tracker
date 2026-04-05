@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Send,
   Info,
+  CheckCircle2,
+  Plus,
 } from "lucide-react";
 
 interface UploadedFile {
@@ -33,6 +35,7 @@ export default function NewIssuePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const router = useRouter();
   const params = useParams();
   const projectId = params.projectId as string;
@@ -73,7 +76,7 @@ export default function NewIssuePage() {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, mode: "REDIRECT" | "NEW" = "REDIRECT") => {
     e.preventDefault();
     if (!title.trim()) {
       setError("Title is required");
@@ -82,6 +85,7 @@ export default function NewIssuePage() {
 
     setIsSubmitting(true);
     setError("");
+    setSuccess("");
 
     try {
       const res = await fetch("/api/issues", {
@@ -98,8 +102,22 @@ export default function NewIssuePage() {
       });
 
       if (res.ok) {
-        const issue = await res.json();
-        router.push(`/projects/${projectId}/issues/${issue.id}`);
+        if (mode === "REDIRECT") {
+          const issue = await res.json();
+          router.push(`/projects/${projectId}/issues/${issue.id}`);
+        } else {
+          // Reset form for new issue
+          setTitle("");
+          setDescription("");
+          setAttachments([]);
+          setSuccess("Issue submitted successfully! Add another below.");
+          
+          // Focus title input
+          document.getElementById("issue-title")?.focus();
+          
+          // Clear success message after 5 seconds
+          setTimeout(() => setSuccess(""), 5000);
+        }
       } else {
         const err = await res.json();
         setError(err.error || "Failed to create issue");
@@ -135,11 +153,18 @@ export default function NewIssuePage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => handleSubmit(e, "REDIRECT")} className="space-y-6">
           {error && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              {success}
             </div>
           )}
 
@@ -318,18 +343,33 @@ export default function NewIssuePage() {
           </div>
 
           {/* Submit */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-white/5">
             <button
               type="button"
               onClick={() => router.back()}
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto order-3 sm:order-1"
             >
               Cancel
             </button>
             <button
+              type="button"
+              disabled={isSubmitting || !title.trim()}
+              onClick={(e) => handleSubmit(e as any, "NEW")}
+              className="btn-secondary w-full sm:w-auto order-2"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Submit & Add Another
+                </>
+              )}
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto order-1 sm:order-3"
             >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
