@@ -20,6 +20,11 @@ import {
   X,
   User as UserIcon,
   Trophy,
+  AlertCircle as AlertIcon,
+  Send,
+  Link,
+  ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { formatRelativeTime, severityColor, statusColor } from "@/lib/utils";
 
@@ -71,15 +76,17 @@ export default function DashboardPage() {
   
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [quickLogForm, setQuickLogForm] = useState({
+  const [newIssueForm, setNewIssueForm] = useState({
     title: "",
+    description: "",
     projectId: activeProject?.id || "",
     severity: "MEDIUM",
+    category: "BUG",
   });
 
   useEffect(() => {
     if (activeProject) {
-      setQuickLogForm((prev) => ({ ...prev, projectId: activeProject.id }));
+      setNewIssueForm((prev) => ({ ...prev, projectId: activeProject.id }));
     }
   }, [activeProject]);
 
@@ -117,21 +124,26 @@ export default function DashboardPage() {
     fetchLeaderboard();
   }, [activeProject]);
 
-  const handleQuickLogSubmit = async (e: React.FormEvent) => {
+  const handleNewIssueSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickLogForm.title || !quickLogForm.projectId) return;
+    if (!newIssueForm.title || !newIssueForm.projectId) return;
 
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/issues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(quickLogForm),
+        body: JSON.stringify(newIssueForm),
       });
 
       if (res.ok) {
         setIsQuickLogOpen(false);
-        setQuickLogForm((prev) => ({ ...prev, title: "" }));
+        setNewIssueForm((prev) => ({ 
+          ...prev, 
+          title: "", 
+          description: "",
+          projectId: activeProject?.id || "" 
+        }));
         fetchDashboard(); // Refresh data
       }
     } catch (error) {
@@ -182,84 +194,145 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in relative">
-      {/* Quick Log Modal Overlay */}
+      {/* New Issue Modal Overlay */}
       {isQuickLogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg card p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-2xl card p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto no-scrollbar border-t border-brand-500/10">
             <button 
               onClick={() => setIsQuickLogOpen(false)}
-              className="absolute top-6 right-6 p-2 text-white/40 hover:text-white transition-colors"
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/5 text-white/40 hover:text-white transition-all transform hover:rotate-90"
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-brand-400" />
-              Quick Log Issue
-            </h2>
-            <p className="text-white/40 text-sm mb-8">Rapidly report a new issue from the dashboard.</p>
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-purple-500/20 flex items-center justify-center border border-brand-500/20">
+                  <Plus className="w-5 h-5 text-brand-400" />
+                </div>
+                Full Issue Log
+              </h2>
+              <p className="text-white/40 text-sm">Detailed report of a new observation, outage, or problem.</p>
+            </div>
             
-            <form onSubmit={handleQuickLogSubmit} className="space-y-6">
+            <form onSubmit={handleNewIssueSubmit} className="space-y-8">
+              {/* Project Selection Grid */}
               <div>
-                <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Project</label>
-                <select 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500/50 transition-colors"
-                  value={quickLogForm.projectId}
-                  onChange={(e) => setQuickLogForm({...quickLogForm, projectId: e.target.value})}
-                  required
-                >
-                  <option value="" disabled className="bg-[#0a0a0a]">Select a project</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id} className="bg-[#0a0a0a]">{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Issue Title</label>
-                <input 
-                  type="text"
-                  placeholder="Summarize the problem..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-500/50 transition-colors"
-                  value={quickLogForm.title}
-                  onChange={(e) => setQuickLogForm({...quickLogForm, title: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Severity</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((sev) => (
-                    <button
-                      key={sev}
-                      type="button"
-                      onClick={() => setQuickLogForm({...quickLogForm, severity: sev})}
-                      className={`py-2 rounded-lg text-[10px] font-bold transition-all ${
-                        quickLogForm.severity === sev 
-                          ? "bg-brand-500 text-white shadow-lg shadow-brand-500/20" 
-                          : "bg-white/5 text-white/40 hover:bg-white/10"
-                      }`}
-                    >
-                      {sev}
-                    </button>
-                  ))}
+                <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-4">Project Confirmation</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {projects.map(p => {
+                    const isSelected = newIssueForm.projectId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setNewIssueForm({...newIssueForm, projectId: p.id})}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-300 group
+                          ${isSelected 
+                            ? "bg-brand-500/15 border-brand-500/40 text-brand-400 shadow-[0_0_20px_rgba(59,130,246,0.15)] scale-[1.02]" 
+                            : "bg-white/[0.02] border-white/5 text-white/40 hover:bg-white/[0.05] hover:border-white/10 hover:text-white/60"}`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors
+                          ${isSelected ? "bg-brand-500/20 text-brand-400" : "bg-white/5 text-white/20 group-hover:bg-white/10"}`}>
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium truncate">{p.name}</span>
+                        {isSelected && <CheckCircle2 className="w-4 h-4 ml-auto" />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-3">
+              {/* Title & Description */}
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Title</label>
+                  <input 
+                    type="text"
+                    placeholder="Brief summary of the issue..."
+                    className="input-field py-4"
+                    value={newIssueForm.title}
+                    onChange={(e) => setNewIssueForm({...newIssueForm, title: e.target.value})}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Description / Steps</label>
+                  <textarea 
+                    placeholder="Provide details, steps to reproduce, or notes..."
+                    rows={4}
+                    className="input-field py-4 min-h-[120px] resize-none"
+                    value={newIssueForm.description}
+                    onChange={(e) => setNewIssueForm({...newIssueForm, description: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Severity & Category Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Severity</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((sev) => (
+                      <button
+                        key={sev}
+                        type="button"
+                        onClick={() => setNewIssueForm({...newIssueForm, severity: sev})}
+                        className={`py-3 rounded-xl text-[10px] font-black tracking-widest transition-all duration-300 border
+                          ${newIssueForm.severity === sev 
+                            ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-lg shadow-brand-500/10" 
+                            : "bg-white/[0.02] border-white/5 text-white/20 hover:bg-white/[0.05] hover:border-white/10 hover:text-white"
+                          }`}
+                      >
+                        {sev}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Category</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["BUG", "FEATURE", "UI_UX", "SECURITY", "OTHER"].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewIssueForm({...newIssueForm, category: cat})}
+                        className={`py-3 rounded-xl text-[10px] font-black tracking-widest transition-all duration-300 border
+                          ${newIssueForm.category === cat 
+                            ? "bg-purple-500/20 border-purple-500/40 text-purple-400 shadow-lg shadow-purple-500/10" 
+                            : "bg-white/[0.02] border-white/5 text-white/20 hover:bg-white/[0.05] hover:border-white/10 hover:text-white"
+                          }`}
+                      >
+                        {cat === "UI_UX" ? "UI / UX" : cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
                   onClick={() => setIsQuickLogOpen(false)}
-                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-colors border border-white/5"
+                  className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold rounded-2xl transition-all border border-white/5"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                  disabled={isSubmitting || !newIssueForm.title || !newIssueForm.projectId}
+                  className="flex-1 py-4 bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-400 hover:to-indigo-500 text-white text-sm font-bold rounded-2xl transition-all shadow-xl shadow-brand-500/25 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? "Logging..." : "Create Issue"}
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      Dispatch Issue
+                    </>
+                  )}
                 </button>
               </div>
             </form>
