@@ -3,6 +3,43 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { compare, hash } from "bcryptjs";
 
+// GET — get user profile data
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const isOwner = session.user.role === "OWNER";
+  const isSelf = session.user.id === id;
+
+  if (!isSelf && !isOwner) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      telegramChatId: true,
+      telegramEnabled: true,
+    },
+  });
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(user);
+}
+
 // PATCH — update own profile (any user) or any user's account (admin only)
 export async function PATCH(
   req: NextRequest,
@@ -22,7 +59,7 @@ export async function PATCH(
   }
 
   try {
-    const { name, email, currentPassword, newPassword } = await req.json();
+    const { name, email, currentPassword, newPassword, telegramChatId, telegramEnabled } = await req.json();
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -70,6 +107,14 @@ export async function PATCH(
         }
       }
       updateData.passwordHash = await hash(newPassword, 12);
+    }
+
+    if (telegramChatId !== undefined) {
+      updateData.telegramChatId = telegramChatId;
+    }
+
+    if (telegramEnabled !== undefined) {
+      updateData.telegramEnabled = telegramEnabled;
     }
 
     if (Object.keys(updateData).length === 0) {

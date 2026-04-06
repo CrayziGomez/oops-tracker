@@ -19,6 +19,7 @@ import {
   Sun,
   Moon,
   Bell,
+  BookOpen,
 } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -52,6 +53,7 @@ export function Header() {
           { href: "/admin/users", label: "Users", icon: Users },
         ]
       : []),
+    { href: "/guide", label: "Guide", icon: BookOpen },
   ];
 
   return (

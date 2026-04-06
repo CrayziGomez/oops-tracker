@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { User, Mail, Lock, Loader2, AlertTriangle, CheckCircle, Eye, EyeOff, Send } from "lucide-react";
 
@@ -118,17 +118,23 @@ export default function ProfilePage() {
   };
 
   // Fetch initial telegram data
-  useState(() => {
+  useEffect(() => {
     if (userId && !hasLoadedTelegram) {
       fetch(`/api/users/${userId}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch profile");
+          return res.json();
+        })
         .then(data => {
           setTelegramChatId(data.telegramChatId || "");
           setTelegramEnabled(data.telegramEnabled || false);
           setHasLoadedTelegram(true);
+        })
+        .catch(err => {
+          console.error("Error loading telegram profile:", err);
         });
     }
-  });
+  }, [userId, hasLoadedTelegram]);
 
   const handleTelegramSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +149,7 @@ export default function ProfilePage() {
           telegramEnabled 
         }),
       });
+
       if (res.ok) {
         setTelegramMsg({ type: "success", text: "Telegram settings updated." });
       } else {
@@ -291,8 +298,17 @@ export default function ProfilePage() {
               className="input-field"
               placeholder="e.g. 123456789"
             />
-            <p className="text-[10px] text-white/20 italic">
-              Your Chat ID is required for the bot to send you direct messages.
+            <p className="text-[10px] text-white/30 flex items-center gap-1.5 mt-1.5">
+              <span>Find your ID by messaging</span>
+              <a 
+                href="https://t.me/userinfobot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-brand-400 hover:underline font-medium"
+              >
+                @userinfobot
+              </a>
+              <span>on Telegram.</span>
             </p>
           </div>
 

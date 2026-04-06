@@ -17,7 +17,11 @@ else
   su-exec nextjs sh -c 'DATABASE_URL=file:/app/data/dev.db npx prisma db push'
 fi
 
-# 2. Seed the database (upsert-safe, run as nextjs user)
+# 2. Backfill serial numbers for existing issues (run as nextjs user)
+echo "🛠️  Backfilling OOPS ticket IDs..."
+su-exec nextjs sh -c 'DATABASE_URL=file:/app/data/dev.db npx tsx prisma/backfill-tickets.ts'
+
+# 3. Seed the database (upsert-safe, run as nextjs user)
 echo "🌱 Seeding initial data..."
 su-exec nextjs sh -c 'DATABASE_URL=file:/app/data/dev.db npm run db:seed'
 

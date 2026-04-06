@@ -5,30 +5,42 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🛠️  Starting OOPS Ticket Backfill...\n");
 
-  // Fetch all issues sorted by createdAt
-  const issues = await prisma.issue.findMany({
+  // 1. Find the current maximum serial number
+  const latestIssue = await prisma.issue.findFirst({
+    where: { serialNumber: { not: null } },
+    orderBy: { serialNumber: "desc" },
+    select: { serialNumber: true },
+  });
+
+  let currentMax = latestIssue?.serialNumber ?? 0;
+  console.log(`Current highest OOPS ID: OOPS-${currentMax}`);
+
+  // 2. Fetch all issues where serialNumber is NULL, sorted by createdAt
+  const pendingIssues = await prisma.issue.findMany({
+    where: { serialNumber: null },
     orderBy: { createdAt: "asc" },
   });
 
-  if (issues.length === 0) {
-    console.log("No issues found to backfill.");
+  if (pendingIssues.length === 0) {
+    console.log("No new issues found to backfill.");
     return;
   }
 
-  console.log(`Found ${issues.length} issues. Assigning serial numbers...`);
+  console.log(`Found ${pendingIssues.length} pending issues. Assigning serial numbers...`);
 
   let count = 0;
-  for (const issue of issues) {
-    const serialNumber = count + 1;
+  for (const issue of pendingIssues) {
+    const nextNumber = currentMax + 1;
     await prisma.issue.update({
       where: { id: issue.id },
-      data: { serialNumber },
+      data: { serialNumber: nextNumber },
     });
-    console.log(`✅ Assigned OOPS-${serialNumber} to "${issue.title}"`);
+    console.log(`✅ Assigned OOPS-${nextNumber} to "${issue.title}"`);
+    currentMax++;
     count++;
   }
 
-  console.log(`\n🎉 Backfill complete! Synchronized ${count} issues.`);
+  console.log(`\n🎉 Backfill complete! Synchronized ${count} new issues.`);
 }
 
 main()
