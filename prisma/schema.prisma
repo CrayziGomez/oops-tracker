@@ -21,6 +21,8 @@ model User {
   projectMembers  ProjectMember[]
   invitationsSent ProjectInvitation[] @relation("Inviter")
   notifications   Notification[]
+  telegramChatId  String?  @unique
+  telegramEnabled Boolean  @default(false)
 
   @@map("users")
 }
@@ -54,11 +56,13 @@ model Issue {
   activityLogs ActivityLog[]
   project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   reporter    User         @relation("ReportedIssues", fields: [reporterId], references: [id])
+  serialNumber Int?        @unique
 
   @@index([projectId])
   @@index([reporterId])
   @@index([status])
   @@index([severity])
+  @@index([serialNumber])
   @@map("issues")
 }
 

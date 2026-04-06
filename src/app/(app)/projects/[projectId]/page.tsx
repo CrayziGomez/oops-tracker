@@ -35,6 +35,7 @@ interface Issue {
   updatedAt: string;
   reporter: { id: string; name: string; email: string };
   project: { id: string; name: string };
+  serialNumber: number;
   _count?: { attachments: number };
 }
 
@@ -199,6 +200,9 @@ export default function ProjectIssuesPage() {
               <thead>
                 <tr className="border-b border-white/5">
                   <th className="text-left p-4 text-xs font-semibold text-white/30 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="text-left p-4 text-xs font-semibold text-white/30 uppercase tracking-wider">
                     Issue
                   </th>
                   <th className="text-left p-4 text-xs font-semibold text-white/30 uppercase tracking-wider">
@@ -230,6 +234,11 @@ export default function ProjectIssuesPage() {
                     }
                     className="border-b border-white/[0.03] hover:bg-white/[0.03] cursor-pointer transition-colors group"
                   >
+                    <td className="p-4">
+                      <span className="text-sm font-bold text-brand-400">
+                        OOPS-{issue.serialNumber}
+                      </span>
+                    </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-white/90 group-hover:text-white">
@@ -288,9 +297,12 @@ export default function ProjectIssuesPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-white/90 truncate">
-                      {issue.title}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                       <span className="text-[10px] font-bold text-brand-400 shrink-0">OOPS-{issue.serialNumber}</span>
+                       <h3 className="text-sm font-medium text-white/90 truncate">
+                        {issue.title}
+                      </h3>
+                    </div>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className="text-xs text-white/30">
                         {issue.reporter.name}

@@ -59,6 +59,7 @@ interface Issue {
   project: { id: string; name: string };
   attachments: Attachment[];
   currentUserRole?: string;
+  serialNumber: number;
 }
 
 const statuses = ["OPEN", "ACTIONED", "IN_REVIEW", "DONE", "ARCHIVED"];
@@ -353,7 +354,9 @@ export default function IssueDetailPage() {
             ) : (
               <>
                 <div className="flex items-start justify-between gap-4">
-                  <h1 className="text-xl sm:text-2xl font-bold text-white">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
+                    <span className="text-brand-400">OOPS-{issue.serialNumber}</span>
+                    <span className="text-white/20 font-light">|</span>
                     {issue.title}
                   </h1>
                   <div className="flex gap-2 shrink-0">

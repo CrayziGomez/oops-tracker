@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { User, Mail, Lock, Loader2, AlertTriangle, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Lock, Loader2, AlertTriangle, CheckCircle, Eye, EyeOff, Send } from "lucide-react";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -26,6 +26,13 @@ export default function ProfilePage() {
   const [showNew, setShowNew] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  
+  // Telegram Settings (Foundation)
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+  const [telegramMsg, setTelegramMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [hasLoadedTelegram, setHasLoadedTelegram] = useState(false);
 
   const userId = session?.user?.id;
 
@@ -107,6 +114,45 @@ export default function ProfilePage() {
       setPasswordMsg({ type: "error", text: "An unexpected error occurred" });
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  // Fetch initial telegram data
+  useState(() => {
+    if (userId && !hasLoadedTelegram) {
+      fetch(`/api/users/${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          setTelegramChatId(data.telegramChatId || "");
+          setTelegramEnabled(data.telegramEnabled || false);
+          setHasLoadedTelegram(true);
+        });
+    }
+  });
+
+  const handleTelegramSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTelegramLoading(true);
+    setTelegramMsg(null);
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          telegramChatId: telegramChatId.trim() || null,
+          telegramEnabled 
+        }),
+      });
+      if (res.ok) {
+        setTelegramMsg({ type: "success", text: "Telegram settings updated." });
+      } else {
+        const err = await res.json();
+        setTelegramMsg({ type: "error", text: err.error || "Failed to update Telegram settings" });
+      }
+    } catch {
+      setTelegramMsg({ type: "error", text: "An unexpected error occurred" });
+    } finally {
+      setTelegramLoading(false);
     }
   };
 
@@ -218,6 +264,62 @@ export default function ProfilePage() {
               className="btn-primary"
             >
               {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Change Password"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Telegram Foundation */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white/70 font-semibold">
+            <Send className="w-4 h-4 text-brand-400" />
+            Telegram Notifications
+          </div>
+          <span className="text-[10px] bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+            Foundation
+          </span>
+        </div>
+        
+        <form onSubmit={handleTelegramSave} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs text-white/30">Telegram Chat ID</label>
+            <input
+              type="text"
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value)}
+              className="input-field"
+              placeholder="e.g. 123456789"
+            />
+            <p className="text-[10px] text-white/20 italic">
+              Your Chat ID is required for the bot to send you direct messages.
+            </p>
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <div className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={telegramEnabled}
+                onChange={(e) => setTelegramEnabled(e.target.checked)}
+                className="sr-only peer" 
+              />
+              <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+            </div>
+            <span className="text-sm text-white/60 group-hover:text-white transition-colors">
+              Enable Telegram Alerts
+            </span>
+          </label>
+
+          {telegramMsg && <Feedback msg={telegramMsg} />}
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={telegramLoading}
+              className="btn-primary"
+            >
+              {telegramLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Telegram Settings"}
             </button>
           </div>
         </form>

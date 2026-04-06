@@ -43,6 +43,7 @@ interface DashboardData {
     reporter: { name: string };
     project: { id: string; name: string };
     projectId: string;
+    serialNumber: number;
   }>;
   projectStats: Array<{
     id: string;
@@ -74,22 +75,7 @@ export default function DashboardPage() {
   const { activeProject, projects, setActiveProject } = useProject();
   const router = useRouter();
   
-  const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newIssueForm, setNewIssueForm] = useState({
-    title: "",
-    description: "",
-    projectId: activeProject?.id || "",
-    severity: "MEDIUM",
-    category: "BUG",
-  });
-
-  useEffect(() => {
-    if (activeProject) {
-      setNewIssueForm((prev) => ({ ...prev, projectId: activeProject.id }));
-    }
-  }, [activeProject]);
-
+  // Dashboard fetching logic
   const fetchDashboard = async () => {
     setIsLoading(true);
     try {
@@ -119,39 +105,11 @@ export default function DashboardPage() {
     }
   };
 
+  // Dashboard Fetching Handlers
   useEffect(() => {
     fetchDashboard();
     fetchLeaderboard();
   }, [activeProject]);
-
-  const handleNewIssueSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newIssueForm.title || !newIssueForm.projectId) return;
-
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/issues", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newIssueForm),
-      });
-
-      if (res.ok) {
-        setIsQuickLogOpen(false);
-        setNewIssueForm((prev) => ({ 
-          ...prev, 
-          title: "", 
-          description: "",
-          projectId: activeProject?.id || "" 
-        }));
-        fetchDashboard(); // Refresh data
-      }
-    } catch (error) {
-      console.error("Failed to log issue:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   if (isLoading && !data) {
     return (
@@ -194,201 +152,60 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in relative">
-      {/* New Issue Modal Overlay */}
-      {isQuickLogOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="relative w-full max-w-2xl card p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto no-scrollbar border-t border-brand-500/10">
-            <button 
-              onClick={() => setIsQuickLogOpen(false)}
-              className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/5 text-white/40 hover:text-white transition-all transform hover:rotate-90"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-purple-500/20 flex items-center justify-center border border-brand-500/20">
-                  <Plus className="w-5 h-5 text-brand-400" />
-                </div>
-                Full Issue Log
-              </h2>
-              <p className="text-white/40 text-sm">Detailed report of a new observation, outage, or problem.</p>
-            </div>
-            
-            <form onSubmit={handleNewIssueSubmit} className="space-y-8">
-              {/* Project Selection Grid */}
-              <div>
-                <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-4">Project Confirmation</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {projects.map(p => {
-                    const isSelected = newIssueForm.projectId === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setNewIssueForm({...newIssueForm, projectId: p.id})}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-300 group
-                          ${isSelected 
-                            ? "bg-brand-500/15 border-brand-500/40 text-brand-400 shadow-[0_0_20px_rgba(59,130,246,0.15)] scale-[1.02]" 
-                            : "bg-white/[0.02] border-white/5 text-white/40 hover:bg-white/[0.05] hover:border-white/10 hover:text-white/60"}`}
-                      >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors
-                          ${isSelected ? "bg-brand-500/20 text-brand-400" : "bg-white/5 text-white/20 group-hover:bg-white/10"}`}>
-                          {p.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-sm font-medium truncate">{p.name}</span>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 ml-auto" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Title & Description */}
-              <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Title</label>
-                  <input 
-                    type="text"
-                    placeholder="Brief summary of the issue..."
-                    className="input-field py-4"
-                    value={newIssueForm.title}
-                    onChange={(e) => setNewIssueForm({...newIssueForm, title: e.target.value})}
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Description / Steps</label>
-                  <textarea 
-                    placeholder="Provide details, steps to reproduce, or notes..."
-                    rows={4}
-                    className="input-field py-4 min-h-[120px] resize-none"
-                    value={newIssueForm.description}
-                    onChange={(e) => setNewIssueForm({...newIssueForm, description: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              {/* Severity & Category Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Severity</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((sev) => (
-                      <button
-                        key={sev}
-                        type="button"
-                        onClick={() => setNewIssueForm({...newIssueForm, severity: sev})}
-                        className={`py-3 rounded-xl text-[10px] font-black tracking-widest transition-all duration-300 border
-                          ${newIssueForm.severity === sev 
-                            ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-lg shadow-brand-500/10" 
-                            : "bg-white/[0.02] border-white/5 text-white/20 hover:bg-white/[0.05] hover:border-white/10 hover:text-white"
-                          }`}
-                      >
-                        {sev}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Category</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["BUG", "FEATURE", "UI_UX", "SECURITY", "OTHER"].map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setNewIssueForm({...newIssueForm, category: cat})}
-                        className={`py-3 rounded-xl text-[10px] font-black tracking-widest transition-all duration-300 border
-                          ${newIssueForm.category === cat 
-                            ? "bg-purple-500/20 border-purple-500/40 text-purple-400 shadow-lg shadow-purple-500/10" 
-                            : "bg-white/[0.02] border-white/5 text-white/20 hover:bg-white/[0.05] hover:border-white/10 hover:text-white"
-                          }`}
-                      >
-                        {cat === "UI_UX" ? "UI / UX" : cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6 flex flex-col sm:flex-row gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsQuickLogOpen(false)}
-                  className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold rounded-2xl transition-all border border-white/5"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !newIssueForm.title || !newIssueForm.projectId}
-                  className="flex-1 py-4 bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-400 hover:to-indigo-500 text-white text-sm font-bold rounded-2xl transition-all shadow-xl shadow-brand-500/25 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      Dispatch Issue
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Page Title & Project Selector */}
+      {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Dashboard
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Dashboard Overview
           </h1>
-          <p className="text-white/40 mt-1">
+          <p className="text-white/40 mt-1 sm:mt-2 text-sm">
             {activeProject 
-              ? `Overview for ${activeProject.name}`
-              : "Overview of all issues across projects"}
+              ? `Real-time health for ${activeProject.name}`
+              : "Cross-system status monitors and activity logs"}
           </p>
         </div>
 
         <button
-          onClick={() => setIsQuickLogOpen(true)}
-          className="flex items-center gap-2 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:scale-105 active:scale-95"
+          onClick={() => router.push("/issues/new")}
+          className="flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-400 hover:to-indigo-500 text-white rounded-2xl text-sm font-bold transition-all duration-300 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:scale-[1.03] active:scale-95 group"
         >
-          <Plus className="w-4 h-4" />
-          New Issue
+          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Plus className="w-3 h-3" />
+          </div>
+          + OOPS log
         </button>
       </div>
 
-      {/* Project Selector Toggle */}
-      <div className="flex items-center gap-2 pb-1 overflow-x-auto no-scrollbar max-w-full">
+      {/* Project Selector Chips (Wrapping) */}
+      <div className="flex flex-wrap items-center gap-3 pb-2 animate-stagger-in">
         <button
           onClick={() => setActiveProject(null)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
-            !activeProject
-              ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-              : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10 hover:border-white/10 hover:text-white/60"
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          All Projects
-        </button>
-        {projects.map((project) => (
-          <button
-            key={project.id}
-            onClick={() => setActiveProject(project)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
-              activeProject?.id === project.id
-                ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                : "border-white/5 bg-white/5 text-white/40 hover:bg-white/10 hover:border-white/10 hover:text-white/60"
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 border whitespace-nowrap
+            ${!activeProject
+              ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-[0_0_25px_rgba(59,130,246,0.2)] scale-[1.03]"
+              : "border-white/5 bg-white/5 text-white/30 hover:bg-white/10 hover:border-white/10 hover:text-white/60 hover:scale-105 active:scale-95"
             }`}
-          >
-            <FolderKanban className="w-4 h-4" />
-            {project.name}
-          </button>
-        ))}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          General Status
+        </button>
+        {projects.map((project) => {
+          const isSelected = activeProject?.id === project.id;
+          return (
+            <button
+              key={project.id}
+              onClick={() => setActiveProject(project)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 border whitespace-nowrap
+                ${isSelected
+                  ? "bg-brand-500/20 border-brand-500/40 text-brand-400 shadow-[0_0_25px_rgba(59,130,246,0.2)] scale-[1.03]"
+                  : "border-white/5 bg-white/5 text-white/30 hover:bg-white/10 hover:border-white/10 hover:text-white/60 hover:scale-105 active:scale-95"
+                }`}
+            >
+              <FolderKanban className="w-3.5 h-3.5" />
+              {project.name}
+            </button>
+          );
+        })}
       </div>
 
       {/* Metrics Cards */}
@@ -461,7 +278,10 @@ export default function DashboardPage() {
                           issue.severity === "CRITICAL" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" : 
                           issue.severity === "HIGH" ? "bg-orange-500" : "bg-blue-500"
                         }`} />
-                        <p className="text-sm font-medium text-white/80 group-hover:text-white truncate">{issue.title}</p>
+                        <p className="text-sm font-medium text-white/80 group-hover:text-white truncate">
+                          <span className="text-brand-400 font-bold mr-2">OOPS-{issue.serialNumber}</span>
+                          {issue.title}
+                        </p>
                       </div>
                       <div className="flex items-center justify-between mt-2 pl-5">
                         <span className="text-[10px] text-white/30">{issue.project.name}</span>

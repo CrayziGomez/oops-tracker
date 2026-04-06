@@ -5,31 +5,23 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...\n");
+  // Check if data already exists to skip seeding
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    console.log("⏭️  Database already contains data commit. Skipping demo seeding to preserve existing state.");
+    return;
+  }
+
+  console.log("🌱 Database is empty. Seeding demo data...\n");
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@oops.local";
   const reporterEmail = process.env.SEED_REPORTER_EMAIL ?? "reporter@oops.local";
   const adminPass = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
   const reporterPass = process.env.SEED_REPORTER_PASSWORD ?? "reporter123";
 
-  // Clean up new tables early
-  await prisma.notification.deleteMany({});
-  await prisma.projectInvitation.deleteMany({});
-
   if (!process.env.SEED_ADMIN_PASSWORD) {
     console.warn("⚠️  SEED_ADMIN_PASSWORD not set — using default 'admin123'. Change this in production!");
   }
-
-  // Migrate existing users' roles from old schema
-  await prisma.user.updateMany({
-    where: { role: "ADMIN" },
-    data: { role: "OWNER" }
-  });
-  await prisma.user.updateMany({
-    where: { role: "REPORTER" },
-    data: { role: "USER" }
-  });
-  console.log("🔄 Existing user roles migrated.");
 
   // Create Admin user
   const adminPassword = await hash(adminPass, 12);

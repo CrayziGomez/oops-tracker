@@ -95,45 +95,60 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const issue = await prisma.issue.create({
-      data: {
-        title,
-        description,
-        severity: severity || "MEDIUM",
-        category: category || "BUG",
-        projectId,
-        reporterId: session.user.id,
-        attachments: attachments?.length
-          ? {
-              create: attachments.map(
-                (a: {
-                  url: string;
-                  filename: string;
-                  type: string;
-                  size?: number;
-                }) => ({
-                  url: a.url,
-                  filename: a.filename,
-                  type: a.type,
-                  size: a.size,
-                })
-              ),
-            }
-          : undefined,
-      },
-      include: {
-        reporter: {
-          select: { id: true, name: true, email: true },
+    // Use a transaction to safely increment the serial number
+    const result = await prisma.$transaction(async (tx) => {
+      const latestIssue = await tx.issue.findFirst({
+        orderBy: { serialNumber: "desc" },
+        select: { serialNumber: true },
+      });
+
+      const nextSerialNumber = (latestIssue?.serialNumber ?? 0) + 1;
+
+      const newIssue = await tx.issue.create({
+        data: {
+          title,
+          description,
+          severity: severity || "MEDIUM",
+          category: category || "BUG",
+          projectId,
+          reporterId: session.user.id,
+          serialNumber: nextSerialNumber,
+          attachments: attachments?.length
+            ? {
+                create: attachments.map(
+                  (a: {
+                    url: string;
+                    filename: string;
+                    type: string;
+                    size?: number;
+                  }) => ({
+                    url: a.url,
+                    filename: a.filename,
+                    type: a.type,
+                    size: a.size,
+                  })
+                ),
+              }
+            : undefined,
         },
-        attachments: true,
-      },
+        include: {
+          reporter: {
+            select: { id: true, name: true, email: true },
+          },
+          attachments: true,
+        },
+      });
+
+      return newIssue;
     });
+
+    const issue = result;
 
     await logActivity({
       issueId: issue.id,
       userId: session.user.id,
       action: "CREATION",
-      details: `Issue created: ${title}`,
+      details: `Issue OOPS-${issue.serialNumber} created: ${title}`,
     });
 
     return NextResponse.json(issue, { status: 201 });
