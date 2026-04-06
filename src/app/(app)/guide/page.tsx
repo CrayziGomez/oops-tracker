@@ -70,27 +70,33 @@ export default function GuidePage() {
       <div className="card p-8 bg-gradient-to-br from-brand-500/5 to-purple-500/5 border-brand-500/20">
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-1 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 text-[10px] font-bold uppercase tracking-widest border border-brand-500/20">
-              Mobile Integration (Coming Soon)
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
+              Mobile Integration (Live)
             </div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               <Send className="w-6 h-6 text-brand-400" />
               Telegram Power-Ups
             </h2>
             <p className="text-white/60 leading-relaxed">
-              We are currently establishing the foundation for robust mobile interaction. Soon, you will be able to receive alerts and **respond to tickets directly from Telegram**.
+              The OOPS Tracker is now fully integrated with Telegram. You can receive real-time alerts and **respond to tickets directly from Telegram**.
             </p>
             <div className="space-y-3 pt-2">
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-white/40">
-                  <span className="text-white/80 font-medium">Foundation in place:</span> You can already link your <span className="text-brand-400">Telegram Chat ID</span> in your Profile Settings to prepare for the rollout.
+                  <span className="text-white/80 font-medium">Link Your Profile:</span> Once you save your <span className="text-brand-400">Telegram Chat ID</span> in your Profile settings, the bot will start sending you updates.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <MessageSquare className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-white/40">
+                  <span className="text-white/80 font-medium">Reply-from-Mobile:</span> Simply reply to any notification message in Telegram. Your reply will automatically appear as a **Comment** on the OOPS ticket!
                 </p>
               </div>
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-white/40">
-                  <span className="text-white/80 font-medium">Instant Identification:</span> The <span className="text-brand-400">OOPS-#</span> ID system ensures the bot knows exactly which log you're referencing.
+                  <span className="text-white/80 font-medium">Instant Identification:</span> The OOPS bot uses the <span className="text-brand-400">OOPS-#</span> IDs to ensure your replies reach the correct issue instantly.
                 </p>
               </div>
             </div>

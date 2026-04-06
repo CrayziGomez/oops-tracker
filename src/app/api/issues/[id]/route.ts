@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
+import { sendIssueTelegramAlert } from "@/lib/telegram";
 
 // GET single issue
 export async function GET(
@@ -123,7 +124,13 @@ export async function PATCH(
     data: updateData,
     include: {
       reporter: {
-        select: { id: true, name: true, email: true },
+        select: { 
+          id: true, 
+          name: true, 
+          email: true,
+          telegramChatId: true,
+          telegramEnabled: true
+        },
       },
       project: {
         select: { id: true, name: true },
@@ -189,6 +196,26 @@ export async function PATCH(
         });
       } catch (emailError) {
         console.error("Failed to send notification email:", emailError);
+      }
+
+      // Telegram notification
+      if (issue.reporter.telegramEnabled && issue.reporter.telegramChatId) {
+        try {
+          const host = req.headers.get("host");
+          const protocol = req.headers.get("x-forwarded-proto") || "http";
+          const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+
+          await sendIssueTelegramAlert({
+            chatId: issue.reporter.telegramChatId,
+            issueId: id,
+            serialNumber: issue.serialNumber || 0,
+            issueTitle: issue.title,
+            action: targetStatus + (revisionReason ? ` (Feedback: ${revisionReason})` : ""),
+            url: `${baseUrl}${link}`,
+          });
+        } catch (tgError) {
+          console.error("Failed to send Telegram alert:", tgError);
+        }
       }
     }
   } else if (canEditMetadata && Object.keys(updateData).length > 0 && (!updateData.status || Object.keys(updateData).length > 1)) {
