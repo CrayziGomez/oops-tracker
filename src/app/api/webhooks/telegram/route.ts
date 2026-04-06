@@ -7,6 +7,8 @@ import {
   sendTelegramMessage 
 } from "@/lib/telegram";
 import { uploadToStorage } from "@/lib/storage";
+import { broadcastIssueUpdate } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/utils";
 
 /**
  * TELEGRAM WEBHOOK HANDLER
@@ -95,6 +97,8 @@ export async function POST(req: NextRequest) {
     // 6. Action Handling (Status Commands or Photo Upload)
     let processedText = text;
     let confirmationMsg = "";
+    const baseUrl = getBaseUrl(req);
+    const shortLink = `${baseUrl}/issues/${sn}`;
 
     // A. Handle Status Commands (Requires Admin/Owner)
     const lowerText = text.toLowerCase().trim();
@@ -140,6 +144,15 @@ export async function POST(req: NextRequest) {
         details: `Status set to ${targetStatus} via Telegram`
       });
 
+      // Broadcast the Status Change
+      await broadcastIssueUpdate({
+        issueId: issue.id,
+        actorId: user.id,
+        action: "STATUS_CHANGE",
+        details: targetStatus,
+        baseUrl
+      });
+
       confirmationMsg = `✅ Ticket OOPS-${sn} marked as ${targetStatus}.`;
     }
 
@@ -170,6 +183,14 @@ export async function POST(req: NextRequest) {
             details: "Attached a photo via Telegram"
           });
 
+          // Broadcast Attachment
+          await broadcastIssueUpdate({
+            issueId: issue.id,
+            actorId: user.id,
+            action: "ATTACHMENT",
+            baseUrl
+          });
+
           const attachmentConfirm = `📎 Photo attached to OOPS-${sn}.`;
           confirmationMsg = confirmationMsg ? `${confirmationMsg}\n${attachmentConfirm}` : attachmentConfirm;
         }
@@ -191,13 +212,21 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Broadcast the Comment
+        await broadcastIssueUpdate({
+          issueId: issue.id,
+          actorId: user.id,
+          action: "COMMENT",
+          baseUrl
+        });
+
         if (!confirmationMsg) confirmationMsg = `💬 Comment added to OOPS-${sn}.`;
       }
     }
 
     // 7. Send Confirmation
     if (confirmationMsg) {
-      await sendTelegramMessage(chatId, confirmationMsg);
+      await sendTelegramMessage(chatId, `${confirmationMsg}\n🔗 [View Ticket](${shortLink})`);
     }
 
     return NextResponse.json({ ok: true });

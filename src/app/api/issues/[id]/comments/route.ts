@@ -5,6 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
 import { sendIssueTelegramAlert } from "@/lib/telegram";
 import { getBaseUrl } from "@/lib/utils";
+import { broadcastIssueUpdate } from "@/lib/notifications";
 
 export async function GET(
   req: Request,
@@ -109,62 +110,13 @@ export async function POST(
     // BROADCAST Logic (Phase 3): Notify Admins / Owners + Reporter
     if (issue) {
       const baseUrl = getBaseUrl(req);
-      const issueUrl = `${baseUrl}/issues/${issueId}`;
-      const actionDesc = "New comment added";
-
-      const recipients = await prisma.user.findMany({
-        where: {
-          OR: [
-            { id: issue.reporterId }, // Include reporter
-            { role: "OWNER" },        // Include owners
-            {
-              projectMembers: {
-                some: {
-                  projectId: issue.projectId,
-                  role: "PROJECT_ADMIN"
-                }
-              }
-            }
-          ],
-          NOT: { id: session.user.id! } // Exclude the commenter
-        },
-        select: { 
-          id: true, email: true, emailEnabled: true,
-          telegramChatId: true, telegramEnabled: true 
-        }
+      // BROADCAST Logic: Notify Admins / Owners + Reporter
+      await broadcastIssueUpdate({
+        issueId,
+        actorId: session.user.id!,
+        action: "COMMENT",
+        baseUrl
       });
-
-      for (const recipient of recipients) {
-        // Telegram Alert
-        if (recipient.telegramEnabled && recipient.telegramChatId) {
-          try {
-            await sendIssueTelegramAlert({
-              chatId: recipient.telegramChatId,
-              issueId: issueId,
-              serialNumber: issue.serialNumber || 0,
-              issueTitle: issue.title,
-              action: actionDesc,
-              url: issueUrl,
-            });
-          } catch (e) {
-            console.error("Failed to send Telegram comment alert:", e);
-          }
-        }
-
-        // Email Alert
-        if (recipient.emailEnabled) {
-          try {
-            await sendIssueNotification({
-              to: recipient.email,
-              issueTitle: issue.title,
-              action: actionDesc,
-              issueUrl: issueUrl,
-            });
-          } catch (e) {
-            console.error("Failed to send Email comment alert:", e);
-          }
-        }
-      }
     }
 
     return NextResponse.json(comment);

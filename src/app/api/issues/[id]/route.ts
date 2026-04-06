@@ -5,6 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
 import { sendIssueTelegramAlert, sendNewIssueTelegramAlert } from "@/lib/telegram";
 import { getBaseUrl } from "@/lib/utils";
+import { broadcastIssueUpdate } from "@/lib/notifications";
 
 // GET single issue
 export async function GET(
@@ -165,78 +166,15 @@ export async function PATCH(
       details: statusChangeDetails,
     });
 
-    // BROADCAST Logic (Phase 3): Notify all Admins / Owners + Reporter
+    // BROADCAST Logic: Notify all Admins / Owners + Reporter
     const baseUrl = getBaseUrl(req);
-    const link = `/issues/${id}`;
-    const issueUrl = `${baseUrl}${link}`;
-    const title = "Issue Status Updated";
-    const actionDesc = targetStatus + (revisionReason ? ` (Feedback: ${revisionReason})` : "");
-    const broadcastMessage = revisionReason
-      ? `The issue "${issue.title}" was marked as ${targetStatus}. Feedback: ${revisionReason}`
-      : `The issue "${issue.title}" was marked as ${targetStatus}.`;
-
-    // 1. Get List of Recipients (Leadership + Reporter)
-    const recipients = await prisma.user.findMany({
-      where: {
-        OR: [
-          { id: issue.reporterId }, // Always include reporter
-          { role: "OWNER" },        // Always include owners
-          {
-            projectMembers: {
-              some: {
-                projectId: issue.projectId,
-                role: "PROJECT_ADMIN"
-              }
-            }
-          }
-        ],
-        NOT: { id: session.user.id } // Exclude the person making the change
-      },
-      select: { 
-        id: true, name: true, email: true, emailEnabled: true,
-        telegramChatId: true, telegramEnabled: true 
-      }
+    await broadcastIssueUpdate({
+      issueId: id,
+      actorId: session.user.id,
+      action: "STATUS_CHANGE",
+      details: targetStatus,
+      baseUrl
     });
-
-    // 2. Dispatch
-    for (const recipient of recipients) {
-      // In-app
-      await prisma.notification.create({
-        data: {
-          userId: recipient.id,
-          title,
-          message: broadcastMessage,
-          type: "ISSUE_UPDATE",
-          link,
-        },
-      });
-
-      // Email
-      if (recipient.emailEnabled) {
-        try {
-          await sendIssueNotification({
-            to: recipient.email,
-            issueTitle: issue.title,
-            action: actionDesc,
-            issueUrl,
-          });
-        } catch (e) { console.error("Email broadcast error:", e); }
-      }
-
-      // Telegram
-      if (recipient.telegramEnabled && recipient.telegramChatId) {
-        try {
-          await sendIssueTelegramAlert({
-            chatId: recipient.telegramChatId,
-            issueId: id,
-            serialNumber: issue.serialNumber || 0,
-            issueTitle: issue.title,
-            action: actionDesc,
-            url: issueUrl,
-          });
-        } catch (e) { console.error("Telegram broadcast error:", e); }
-      }
-    }
   } else if (canEditMetadata && Object.keys(updateData).length > 0 && (!updateData.status || Object.keys(updateData).length > 1)) {
 
       // Log generic edit for metadata changes

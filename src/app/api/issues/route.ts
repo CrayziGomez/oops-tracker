@@ -190,8 +190,7 @@ export async function POST(req: NextRequest) {
 
       if (admins.length > 0) {
         const baseUrl = getBaseUrl(req);
-        const issueLink = `/issues/${issue.id}`;
-        const issueUrl = `${baseUrl}${issueLink}`;
+        const issueUrl = `${baseUrl}/issues/${issue.serialNumber}`;
 
         for (const admin of admins) {
           // 1. In-App Notification
@@ -201,7 +200,7 @@ export async function POST(req: NextRequest) {
               title: "New OOPS Log Shared",
               message: `[OOPS-${issue.serialNumber}] ${issue.reporter.name} just logged: ${issue.title}`,
               type: "NEW_ISSUE",
-              link: issueLink,
+              link: `/issues/${issue.serialNumber}`,
             },
           });
 
