@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useProject } from "@/components/providers/project-provider";
 import {
@@ -26,7 +25,10 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
+import useSWR from "swr";
 import { formatRelativeTime, severityColor, statusColor } from "@/lib/utils";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface DashboardData {
   metrics: {
@@ -69,47 +71,28 @@ interface LeaderboardUser {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { activeProject, projects, setActiveProject } = useProject();
   const router = useRouter();
-  
-  // Dashboard fetching logic
-  const fetchDashboard = async () => {
-    setIsLoading(true);
-    try {
-      const url = activeProject 
-        ? `/api/dashboard?projectId=${activeProject.id}`
-        : "/api/dashboard";
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
-    } catch (error) {
-      console.error("Failed to fetch dashboard:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch("/api/dashboard/leaderboard");
-      if (res.ok) {
-        setLeaderboard(await res.json());
-      }
-    } catch (error) {
-      console.error("Failed to fetch leaderboard:", error);
-    }
-  };
+  // 1. SWR for Dashboard Metrics & Activity
+  const dashboardKey = activeProject 
+    ? `/api/dashboard?projectId=${activeProject.id}`
+    : "/api/dashboard";
+    
+  const { 
+    data, 
+    isLoading: isDashboardLoading 
+  } = useSWR<DashboardData>(dashboardKey, fetcher, {
+    revalidateOnFocus: true,
+    refreshInterval: 60000, // Background poll every minute
+  });
 
-  // Dashboard Fetching Handlers
-  useEffect(() => {
-    fetchDashboard();
-    fetchLeaderboard();
-  }, [activeProject]);
+  // 2. SWR for Leaderboard
+  const { 
+    data: leaderboard = [] 
+  } = useSWR<LeaderboardUser[]>("/api/dashboard/leaderboard", fetcher);
+
+  const isLoading = isDashboardLoading;
 
   if (isLoading && !data) {
     return (

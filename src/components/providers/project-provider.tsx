@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import useSWR from "swr";
 
 interface Project {
   id: string;
@@ -11,11 +12,13 @@ interface Project {
   members?: { role: string }[];
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 interface ProjectContextType {
   projects: Project[];
   activeProject: Project | null;
   setActiveProject: (project: Project | null) => void;
-  refreshProjects: () => Promise<void>;
+  refreshProjects: () => void;
   isLoading: boolean;
 }
 
@@ -23,50 +26,60 @@ const ProjectContext = createContext<ProjectContextType>({
   projects: [],
   activeProject: null,
   setActiveProject: () => {},
-  refreshProjects: async () => {},
+  refreshProjects: () => {},
   isLoading: true,
 });
 
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [activeProject, setActiveProjectState] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { data: session, status } = useSession();
-
-  const fetchProjects = useCallback(async () => {
-    try {
-      const res = await fetch("/api/projects");
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data);
-
-        // Restore active project from localStorage or use first
-        const savedId =
-          typeof window !== "undefined"
-            ? localStorage.getItem("activeProjectId")
-            : null;
-        const saved = data.find((p: Project) => p.id === savedId);
-        if (saved) {
-          setActiveProjectState(saved);
-        } else if (data.length > 0 && !activeProject) {
-          setActiveProjectState(data[0]);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-    } finally {
-      setIsLoading(false);
+  
+  // 1. SWR for Dynamic Project List
+  const { 
+    data: projects = [], 
+    error, 
+    isLoading: swrLoading,
+    mutate 
+  } = useSWR<Project[]>(
+    status === "authenticated" ? "/api/projects" : null, 
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateIfStale: true,
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  );
 
+  const [activeProject, setActiveProjectState] = useState<Project | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // 2. Active Project Management & Cleanup
   useEffect(() => {
-    if (status === "authenticated") {
-      fetchProjects();
+    if (status === "authenticated" && !swrLoading && Array.isArray(projects)) {
+      // Restore from localStorage or use first
+      const savedId = typeof window !== "undefined"
+        ? localStorage.getItem("activeProjectId")
+        : null;
+
+      const currentActive = projects.find((p) => p.id === (activeProject?.id || savedId));
+      
+      if (currentActive) {
+        if (activeProject?.id !== currentActive.id) {
+           setActiveProjectState(currentActive);
+        }
+      } else if (projects.length > 0) {
+        // Fallback or cleanup if previously active project was deleted
+        setActiveProjectState(projects[0]);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("activeProjectId", projects[0].id);
+        }
+      } else {
+        setActiveProjectState(null);
+      }
+      
+      setIsInitialLoading(false);
     } else if (status === "unauthenticated") {
-      setIsLoading(false);
+      setIsInitialLoading(false);
     }
-  }, [fetchProjects, status]);
+  }, [projects, status, swrLoading]);
 
   const setActiveProject = (project: Project | null) => {
     setActiveProjectState(project);
@@ -85,8 +98,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         projects,
         activeProject,
         setActiveProject,
-        refreshProjects: fetchProjects,
-        isLoading,
+        refreshProjects: () => mutate(),
+        isLoading: isInitialLoading || swrLoading,
       }}
     >
       {children}
