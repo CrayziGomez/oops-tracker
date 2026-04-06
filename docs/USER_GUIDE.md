@@ -7,13 +7,13 @@ Welcome to **OOPS Tracker**. This guide covers everything you need to know to re
 ## 🚀 Getting Started
 
 ### 1. Your Workspace
-When you log in, your dashboard shows a summary of activity for the **Projects** you are a member of.
-- If you don't see a project you expect to be in, contact your **Project Administrator** to be invited.
-- You can switch between projects using the project selector in the top navigation bar.
+When you are added to a new project by an Owner or Admin, you will receive an **in-app notification** and a **welcome alert** (via Email/Telegram if enabled).
+- Your dashboard shows a summary of activity for the **Projects** you are a member of.
+- Use the project selector in the top navigation bar to switch between projects.
 
 ### 2. The OOPS Lifecycle
-Every issue (Observation, Outage, Problem, or Suggestion) follows a standard workflow:
-1. **OPEN**: The issue has been reported and is awaiting triage.
+Every OOPS log (Observation, Outage, Problem, or Suggestion) follows a standard workflow:
+1. **OPEN**: The issue has been reported and is awaiting triage. All project members are notified of the new log.
 2. **ACTIONED**: Someone is actively working on a resolution.
 3. **IN REVIEW**: A fix has been submitted and is being verified.
 4. **DONE**: The issue is resolved and closed.
@@ -35,11 +35,11 @@ Every log is assigned a unique tracking ID (e.g., `OOPS-123`). You can use the s
 
 ## 🔔 Managing Notifications
 
-OOPS Tracker provides real-time updates so you never miss a critical fix.
+OOPS Tracker provides real-time updates so the entire team stays in the loop.
 
 ### Profile Settings
 Go to your **Profile** page to manage how you receive alerts:
-- **Global Toggles**: Turn **Email** or **Telegram** notifications ON/OFF for your entire account.
+- **Privacy Defaults**: By default, **Email** and **Telegram** notifications are set to **OFF**. You must explicitly enable them if you wish to receive off-site alerts.
 - **Project Subscriptions**: You can choose to "Mute" or "Unmute" specific projects. If a project is muted, you won't receive any Push/Email alerts for it, even if you are a member.
 
 ---
@@ -54,13 +54,13 @@ Our Telegram integration allows you to manage tickets without opening your brows
 3. Paste this Chat ID into your **Profile** settings in the OOPS Web App.
 
 ### Features
-- **Real-time Alerts**: Get notified the second a ticket is updated or a comment is added.
-*   **Quick Replies**: Simply reply to any bot message to add a comment to that ticket.
-*   **Photo Attachments**: Reply with a photo to automatically attach it to the OOPS log.
-*   **Action Commands** (Admins Only):
-    *   `/done`: Mark the ticket as resolved.
-    *   `/action`: Mark the ticket as being worked on.
-    *   `/open`: Re-open a ticket.
+- **Real-time Alerts**: Get notified the second **any** member updates a ticket or adds a comment.
+- **Mobile Discussions**: Simply reply to any bot alert to add a comment. **Every project member** receives your reply instantly.
+- **Photo Attachments**: Reply with a photo to automatically attach evidence to the OOPS log.
+- **Action Commands** (Admins Only):
+    - `/done`: Mark the ticket as resolved.
+    - `/action`: Mark the ticket as actioned.
+    - `/open`: Re-open a ticket.
 
 ---
 

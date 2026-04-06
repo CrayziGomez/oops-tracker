@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { sendIssueNotification } from "@/lib/email";
-import { sendIssueTelegramAlert } from "@/lib/telegram";
+import { 
+  sendIssueTelegramAlert, 
+  sendNewIssueTelegramAlert 
+} from "@/lib/telegram";
 
 interface BroadcastOptions {
   issueId: string;
@@ -41,7 +44,7 @@ export async function broadcastIssueUpdate({
       "New attachment added";
 
     // 2. Identify Potential Recipients
-    // Reporters + Project Admins + Global Owners
+    // Reporters + ALL Project Members + Global Owners
     const potentialRecipients = await prisma.user.findMany({
       where: {
         OR: [
@@ -51,7 +54,6 @@ export async function broadcastIssueUpdate({
             projectMembers: {
               some: {
                 projectId: issue.projectId,
-                role: "PROJECT_ADMIN",
               },
             },
           },
@@ -133,3 +135,167 @@ export async function broadcastIssueUpdate({
     console.error("🔥 Global Notification Broadcast Error:", error);
   }
 }
+
+/**
+ * PROJECT INVITATION BROADCAST
+ * Notifies a user when they are added to a project.
+ */
+export async function broadcastProjectInvite({
+  userId,
+  projectId,
+  baseUrl
+}: {
+  userId: string;
+  projectId: string;
+  baseUrl: string;
+}) {
+  try {
+    const [user, project] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.project.findUnique({ where: { id: projectId } })
+    ]);
+
+    if (!user || !project) return;
+
+    const projectUrl = `${baseUrl}/projects/${project.id}`;
+    const message = `You've been added to project: ${project.name}`;
+
+    // A. Telegram
+    if (user.telegramEnabled && user.telegramChatId) {
+       await sendIssueTelegramAlert({
+         chatId: user.telegramChatId,
+         issueId: "invite",
+         serialNumber: 0,
+         issueTitle: project.name,
+         action: "assigned to project",
+         url: projectUrl
+       });
+    }
+
+    // B. Email
+    if (user.emailEnabled) {
+      await sendIssueNotification({
+        to: user.email,
+        issueTitle: project.name,
+        action: "assigned to project",
+        issueUrl: projectUrl
+      });
+    }
+
+    // C. In-App
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        title: "Project Assignment",
+        message: `You have been added to ${project.name}`,
+        type: "PROJECT_INVITE",
+        link: `/dashboard`, // or projectUrl if absolute
+      }
+    });
+
+  } catch (error) {
+    console.error("🔥 Project Invite Broadcast Failed:", error);
+  }
+}
+
+/**
+ * NEW ISSUE BROADCAST
+ * Notifies all project members and global owners when a new issue is created.
+ */
+export async function broadcastNewIssue({
+  issueId,
+  actorId,
+  baseUrl
+}: {
+  issueId: string;
+  actorId: string;
+  baseUrl: string;
+}) {
+  try {
+    const issue = await prisma.issue.findUnique({
+      where: { id: issueId },
+      include: {
+        project: true,
+        reporter: { select: { name: true, email: true } },
+      },
+    });
+
+    if (!issue) return;
+
+    const sn = issue.serialNumber || 0;
+    const issueUrl = `${baseUrl}/issues/${sn}`;
+
+    // Identify Recipients: Reporters + ALL Membership + Owners (Muted check later)
+    const potentialRecipients = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: "OWNER" },
+          {
+            projectMembers: {
+              some: { projectId: issue.projectId }
+            }
+          }
+        ],
+        NOT: { id: actorId }
+      },
+      select: {
+        id: true,
+        email: true,
+        emailEnabled: true,
+        telegramChatId: true,
+        telegramEnabled: true,
+        projectMembers: {
+          where: { projectId: issue.projectId },
+          select: { notificationsEnabled: true }
+        },
+        projectMutes: {
+          where: { projectId: issue.projectId },
+          select: { id: true }
+        }
+      }
+    });
+
+    for (const user of potentialRecipients) {
+      const isMuted = user.projectMutes.length > 0;
+      const projectSub = user.projectMembers[0]?.notificationsEnabled ?? true;
+      if (isMuted || !projectSub) continue;
+
+      // 1. Telegram
+      if (user.telegramEnabled && user.telegramChatId) {
+        await sendNewIssueTelegramAlert({
+          chatId: user.telegramChatId,
+          serialNumber: sn,
+          issueTitle: issue.title,
+          reporterName: issue.reporter.name,
+          severity: issue.severity,
+          category: issue.category,
+          url: issueUrl
+        });
+      }
+
+      // 2. Email
+      if (user.emailEnabled) {
+        await sendIssueNotification({
+          to: user.email,
+          issueTitle: issue.title,
+          action: `created by ${issue.reporter.name}`,
+          issueUrl: issueUrl
+        });
+      }
+
+      // 3. In-App
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: "New OOPS Log Shared",
+          message: `[OOPS-${sn}] ${issue.reporter.name} logged: ${issue.title}`,
+          type: "NEW_ISSUE",
+          link: `/issues/${sn}`
+        }
+      });
+    }
+  } catch (error) {
+    console.error("🔥 New Issue Broadcast Failed:", error);
+  }
+}
+

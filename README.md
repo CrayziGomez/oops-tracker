@@ -10,14 +10,14 @@ OOPS is a self-hosted issue tracker with a premium **dark-mode aesthetic** and *
 
 - **📂 Project-Based Organisation**: Group issues by project. Users only see and interact with projects they are explicitly assigned to.
 - **🛡️ Role-Based Access Control**:
-  - **Global Owners**: Full control over the system (create projects, manage global users, configure settings).
+  - **Global Owners**: Full control over the system (create projects, manage global users, configure settings). Includes a **Bulk Project Manager** to assign users and roles (Admin/Reporter) in one click.
   - **Project Admins**: Can manage project team members and review/close issues for their specific projects.
-  - **Users / Reporters**: Can report issues, update their own tickets, and join discussions strictly within their assigned projects.
-- **🔔 Smart Broadcasting**: Real-time multi-channel alerts (Email/Telegram) for project teams.
-- **📱 Advanced Telegram Bot**: Manage tickets via mobile. Commands like `/done` and photo attachments are supported.
-- **⚙️ Granular Notifications**: Users can toggle global channels and mute/unmute specific projects from their profile.
-- **💬 Comments**: Discussion threads on every issue.
-- **📎 Attachments**: Upload images, logs, and documents to issues.
+  - **Users / Reporters**: Can report issues, update their own tickets, and participate in project-wide discussions.
+- **🔔 Team-Wide Broadcasting**: Real-time multi-channel alerts (Email/Telegram/In-App) for the **whole project team**. Every member stays in the loop by default.
+- **📱 Advanced Telegram Bot**: Manage tickets via mobile. Commands like `/done`, `/action`, and photo attachments are supported. Now supports **direct replies** from any project member to join the ticket discussion.
+- **🔗 Reliable linking**: Uses a **Short-Link Redirector** (`/issues/123`) for 404-proof notifications across all platforms and devices.
+- **⚙️ Profile Privacy**: Users can toggle global channels (defaulted to OFF for privacy) and mute/unmute specific projects.
+- **💬 Comments & Attachments**: Discussion threads and file uploads on every issue.
 - **📊 Dashboard**: High-level overview of system metrics and activity.
 - **🌑 Dark UI**: Built with Tailwind CSS 4 and Lucide icons.
 
