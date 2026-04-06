@@ -9,8 +9,10 @@ services:
       - "3005:3000"
     environment:
       - DATABASE_URL=file:/app/data/dev.db
-      - NEXTAUTH_SECRET=secret_placeholder
-      - NEXTAUTH_URL=http://localhost:3005
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-secret_placeholder}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://oops.2bso.com}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}
     volumes:
       - oops_data:/app/data
       - oops_uploads:/app/public/uploads
