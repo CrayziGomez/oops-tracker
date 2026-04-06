@@ -13,14 +13,23 @@ export default async function IssueRedirectPage({
   const { sn } = await params;
   const serialNumber = parseInt(sn, 10);
 
-  if (isNaN(serialNumber)) {
-    return notFound();
+  let issue;
+
+  if (!isNaN(serialNumber)) {
+    // 1. Try finding by Serial Number
+    issue = await prisma.issue.findFirst({
+      where: { serialNumber },
+      select: { id: true, projectId: true },
+    });
   }
 
-  const issue = await prisma.issue.findFirst({
-    where: { serialNumber },
-    select: { id: true, projectId: true },
-  });
+  // 2. Fallback: Try finding by ID (Handles legacy notification links)
+  if (!issue) {
+    issue = await prisma.issue.findUnique({
+      where: { id: sn },
+      select: { id: true, projectId: true },
+    });
+  }
 
   if (!issue) {
     return notFound();

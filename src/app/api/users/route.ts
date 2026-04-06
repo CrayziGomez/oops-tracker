@@ -14,8 +14,11 @@ export async function GET() {
           select: { issues: true }
         },
         projectMembers: {
-          where: { role: "PROJECT_ADMIN" },
-          select: { projectId: true }
+          select: { 
+            projectId: true, 
+            role: true,
+            project: { select: { name: true } }
+          }
         }
       },
       orderBy: { name: "asc" },

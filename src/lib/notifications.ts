@@ -122,7 +122,7 @@ export async function broadcastIssueUpdate({
             title: `OOPS-${sn}: ${actionLabel}`,
             message: `${issue.title}`,
             type: "ISSUE_UPDATE",
-            link: issueUrl,
+            link: `/issues/${sn}`,
           },
         });
       } catch (e) {

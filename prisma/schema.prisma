@@ -23,7 +23,7 @@ model User {
   notifications   Notification[]
   telegramChatId  String?  @unique
   telegramEnabled Boolean  @default(false)
-  emailEnabled     Boolean  @default(true)
+  emailEnabled    Boolean  @default(false)
   projectMutes   ProjectMute[]
 
   @@map("users")

@@ -15,6 +15,11 @@ import {
   EyeOff,
   Trash2,
   KeyRound,
+  Settings2,
+  FolderKanban,
+  CheckCircle2,
+  X,
+  Check,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -25,13 +30,24 @@ interface UserItem {
   role: string;
   createdAt: string;
   _count: { issues: number };
-  projectMembers?: { projectId: string }[];
+  projectMembers: { 
+    projectId: string; 
+    role: string; 
+    project: { name: string } 
+  }[];
+}
+
+interface ProjectItem {
+  id: string;
+  name: string;
 }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [allProjects, setAllProjects] = useState<ProjectItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [manageProjectUserId, setManageProjectUserId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,16 +60,20 @@ export default function AdminUsersPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetError, setResetError] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
   const { data: session } = useSession();
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("/api/users");
-      if (res.ok) {
-        setUsers(await res.json());
-      }
+      const [usersRes, projectsRes] = await Promise.all([
+        fetch("/api/users"),
+        fetch("/api/projects")
+      ]);
+
+      if (usersRes.ok) setUsers(await usersRes.json());
+      if (projectsRes.ok) setAllProjects(await projectsRes.json());
     } catch (err) {
-      console.error("Failed to fetch users:", err);
+      console.error("Failed to fetch admin data:", err);
     } finally {
       setIsLoading(false);
     }
@@ -159,6 +179,36 @@ export default function AdminUsersPage() {
     } catch (err) {
       console.error("Failed to delete user:", err);
       alert("An unexpected error occurred");
+    }
+  };
+
+  const handleSyncMemberships = async (userId: string, memberships: any[]) => {
+    setIsSyncing(true);
+    try {
+      // Clean memberships for the API (extract only IDs and Roles)
+      const cleanMemberships = memberships.map(m => ({
+        projectId: m.projectId,
+        role: m.role
+      }));
+
+      const res = await fetch(`/api/users/${userId}/memberships`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberships: cleanMemberships }),
+      });
+
+      if (res.ok) {
+        // Optimistic update or just refetch
+        await fetchUsers();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to update project access");
+      }
+    } catch (err) {
+      console.error("Membership sync error:", err);
+      alert("An unexpected error occurred");
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -286,7 +336,7 @@ export default function AdminUsersPage() {
 
       {/* Users List */}
       <div className="space-y-3 stagger-children">
-        {users.map((user) => (
+        {users.map((user: UserItem) => (
           <div key={user.id} className="card p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -317,14 +367,26 @@ export default function AdminUsersPage() {
                     <Mail className="w-3 h-3 text-white/20" />
                     <span className="text-sm text-white/40">{user.email}</span>
                   </div>
-                  {user.projectMembers && user.projectMembers.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <Shield className="w-3 h-3 text-brand-400/60" />
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-brand-400/60">
-                        Project Admin ({user.projectMembers.length})
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {user.projectMembers.map((m) => (
+                      <span 
+                        key={m.projectId}
+                        className={`text-[9px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-md border 
+                          ${m.role === "PROJECT_ADMIN" 
+                            ? "bg-brand-500/10 text-brand-400 border-brand-500/20" 
+                            : "bg-white/5 text-white/40 border-white/10"}`}
+                      >
+                        {m.role === "PROJECT_ADMIN" && <Shield className="w-2.5 h-2.5 inline mr-1 -mt-0.5" />}
+                        {m.project.name}
                       </span>
-                    </div>
-                  )}
+                    ))}
+                    {user.projectMembers.length === 0 && user.role !== "OWNER" && (
+                      <span className="text-[9px] font-bold text-white/10 italic">No project access</span>
+                    )}
+                    {user.role === "OWNER" && user.projectMembers.length === 0 && (
+                      <span className="text-[9px] font-black text-amber-400/40 uppercase tracking-[0.1em]">Global Access</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -337,6 +399,17 @@ export default function AdminUsersPage() {
                     Joined {formatDate(user.createdAt)}
                   </span>
                 </div>
+                <button
+                  onClick={() => setManageProjectUserId(user.id)}
+                  className={`p-2 rounded-lg transition-all ${
+                    manageProjectUserId === user.id
+                      ? "text-brand-400 bg-brand-400/10"
+                      : "text-white/20 hover:text-brand-400 hover:bg-brand-400/10"
+                  }`}
+                  title="Manage project memberships"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => {
                     setResetUserId(resetUserId === user.id ? null : user.id);
@@ -410,6 +483,103 @@ export default function AdminUsersPage() {
           </div>
         ))}
       </div>
+
+      {/* Project Manager Modal */}
+      {manageProjectUserId && (() => {
+        const user = users.find(u => u.id === manageProjectUserId);
+        if (!user) return null;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="card w-full max-w-lg p-6 shadow-2xl border border-white/10 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Project Access</h2>
+                  <p className="text-sm text-white/40">Manage projects for <span className="text-brand-400 font-medium">{user.name}</span></p>
+                </div>
+                <button 
+                  onClick={() => setManageProjectUserId(null)}
+                  className="p-2 rounded-lg hover:bg-white/10 text-white/40 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                {allProjects.map((project) => {
+                  const membership = user.projectMembers.find(m => m.projectId === project.id);
+                  const isMember = !!membership;
+                  const isAdmin = membership?.role === "PROJECT_ADMIN";
+
+                  return (
+                    <div 
+                      key={project.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all 
+                        ${isMember ? "bg-white/[0.04] border-white/10" : "bg-transparent border-white/5 opacity-60"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center 
+                          ${isMember ? "bg-brand-500/20 text-brand-400" : "bg-white/5 text-white/20"}`}>
+                          <FolderKanban className="w-4 h-4" />
+                        </div>
+                        <span className={`text-sm font-medium ${isMember ? "text-white" : "text-white/40"}`}>
+                          {project.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isMember ? (
+                          <>
+                            <button
+                              onClick={async () => {
+                                const newRole = isAdmin ? "PROJECT_REPORTER" : "PROJECT_ADMIN";
+                                await handleSyncMemberships(user.id, 
+                                  user.projectMembers.map(m => m.projectId === project.id ? { ...m, role: newRole } : m)
+                                );
+                              }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border
+                                ${isAdmin 
+                                  ? "bg-amber-500/20 text-amber-400 border-amber-500/30" 
+                                  : "bg-white/5 text-white/40 border-white/10 hover:border-white/20 hover:text-white/60"}`}
+                            >
+                              <Shield className="w-3 h-3" />
+                              {isAdmin ? "Admin" : "Reporter"}
+                            </button>
+                            <button
+                              onClick={() => handleSyncMemberships(user.id, user.projectMembers.filter(m => m.projectId !== project.id))}
+                              className="p-2 rounded-lg hover:bg-red-500/10 text-red-500/40 hover:text-red-500 transition-colors"
+                              title="Remove access"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleSyncMemberships(user.id, [...user.projectMembers, { projectId: project.id, role: "PROJECT_REPORTER", project: { name: project.name } }])}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Add
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setManageProjectUserId(null)}
+                  className="btn-primary w-full"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {users.length === 0 && !showCreate && (
         <div className="card p-12 text-center">
