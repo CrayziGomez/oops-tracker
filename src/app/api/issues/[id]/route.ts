@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
-import { sendIssueTelegramAlert } from "@/lib/telegram";
+import { sendIssueTelegramAlert, sendNewIssueTelegramAlert } from "@/lib/telegram";
+import { getBaseUrl } from "@/lib/utils";
 
 // GET single issue
 export async function GET(
@@ -164,61 +165,76 @@ export async function PATCH(
       details: statusChangeDetails,
     });
 
-    // Notify Reporter (if not the one who changed it)
-    if (issue.reporterId !== session.user.id) {
-      const title = "Issue Status Updated";
-      const message = revisionReason
-        ? `The issue "${issue.title}" was marked as ${targetStatus}. Feedback: ${revisionReason}`
-        : `The issue "${issue.title}" was marked as ${targetStatus}.`;
-      const link = `/issues/${id}`;
+    // BROADCAST Logic (Phase 3): Notify all Admins / Owners + Reporter
+    const baseUrl = getBaseUrl(req);
+    const link = `/issues/${id}`;
+    const issueUrl = `${baseUrl}${link}`;
+    const title = "Issue Status Updated";
+    const actionDesc = targetStatus + (revisionReason ? ` (Feedback: ${revisionReason})` : "");
+    const broadcastMessage = revisionReason
+      ? `The issue "${issue.title}" was marked as ${targetStatus}. Feedback: ${revisionReason}`
+      : `The issue "${issue.title}" was marked as ${targetStatus}.`;
 
-      // In-app notification
+    // 1. Get List of Recipients (Leadership + Reporter)
+    const recipients = await prisma.user.findMany({
+      where: {
+        OR: [
+          { id: issue.reporterId }, // Always include reporter
+          { role: "OWNER" },        // Always include owners
+          {
+            memberships: {
+              some: {
+                projectId: issue.projectId,
+                role: "PROJECT_ADMIN"
+              }
+            }
+          }
+        ],
+        NOT: { id: session.user.id } // Exclude the person making the change
+      },
+      select: { 
+        id: true, name: true, email: true, emailEnabled: true,
+        telegramChatId: true, telegramEnabled: true 
+      }
+    });
+
+    // 2. Dispatch
+    for (const recipient of recipients) {
+      // In-app
       await prisma.notification.create({
         data: {
-          userId: issue.reporterId,
+          userId: recipient.id,
           title,
-          message,
+          message: broadcastMessage,
           type: "ISSUE_UPDATE",
           link,
         },
       });
 
-      // Email notification
-      if (issue.reporter.emailEnabled) {
+      // Email
+      if (recipient.emailEnabled) {
         try {
-          const host = req.headers.get("host");
-          const protocol = req.headers.get("x-forwarded-proto") || "http";
-          const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
-          
           await sendIssueNotification({
-            to: issue.reporter.email,
+            to: recipient.email,
             issueTitle: issue.title,
-            action: targetStatus + (revisionReason ? ` (Feedback: ${revisionReason})` : ""),
-            issueUrl: `${baseUrl}${link}`,
+            action: actionDesc,
+            issueUrl,
           });
-        } catch (emailError) {
-          console.error("Failed to send notification email:", emailError);
-        }
+        } catch (e) { console.error("Email broadcast error:", e); }
       }
 
-      // Telegram notification
-      if (issue.reporter.telegramEnabled && issue.reporter.telegramChatId) {
+      // Telegram
+      if (recipient.telegramEnabled && recipient.telegramChatId) {
         try {
-          const host = req.headers.get("host");
-          const protocol = req.headers.get("x-forwarded-proto") || "http";
-          const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
-
           await sendIssueTelegramAlert({
-            chatId: issue.reporter.telegramChatId,
+            chatId: recipient.telegramChatId,
             issueId: id,
             serialNumber: issue.serialNumber || 0,
             issueTitle: issue.title,
-            action: targetStatus + (revisionReason ? ` (Feedback: ${revisionReason})` : ""),
-            url: `${baseUrl}${link}`,
+            action: actionDesc,
+            url: issueUrl,
           });
-        } catch (tgError) {
-          console.error("Failed to send Telegram alert:", tgError);
-        }
+        } catch (e) { console.error("Telegram broadcast error:", e); }
       }
     }
   } else if (canEditMetadata && Object.keys(updateData).length > 0 && (!updateData.status || Object.keys(updateData).length > 1)) {

@@ -10,51 +10,30 @@ export async function GET() {
   }
 
   const userId = session.user.id!;
-  const isOwner = session.user.role === "OWNER";
 
-  // 1. Get all projects
-  const projects = await prisma.project.findMany({
-    select: {
-      id: true,
-      name: true,
-    },
-    orderBy: { name: "asc" },
-  });
-
-  // 2. Get user's memberships
+  // 1. Get user's memberships
   const memberships = await prisma.projectMember.findMany({
     where: { userId },
     select: { projectId: true, notificationsEnabled: true },
   });
 
-  // 3. Get user's mutes (for Owners)
-  const mutes = await prisma.projectMute.findMany({
-    where: { userId },
-    select: { projectId: true },
+  // 2. Get ONLY projects user is a member of
+  const joinedProjectIds = memberships.map((m: { projectId: string }) => m.projectId);
+  const projects = await prisma.project.findMany({
+    where: { id: { in: joinedProjectIds } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 
   // Combine data
   const preferences = projects.map((p: { id: string; name: string }) => {
     const membership = memberships.find((m: { projectId: string; notificationsEnabled: boolean }) => m.projectId === p.id);
-    const isMuted = mutes.some((m: { projectId: string }) => m.projectId === p.id);
     
-    // Logic: 
-    // - If member: Use membership.notificationsEnabled
-    // - If not member (but Owner): Use !isMuted
-    // - Otherwise: Default to true (but they won't get alerts anyway if not admin/owner)
-    
-    let enabled = true;
-    if (membership) {
-      enabled = membership.notificationsEnabled;
-    } else if (isOwner && isMuted) {
-      enabled = false;
-    }
-
     return {
       id: p.id,
       name: p.name,
-      isMember: !!membership,
-      enabled,
+      isMember: true, // They must be a member to be in this list now
+      enabled: membership?.notificationsEnabled ?? true,
     };
   });
 

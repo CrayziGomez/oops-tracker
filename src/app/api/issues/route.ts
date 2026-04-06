@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
 import { sendNewIssueTelegramAlert } from "@/lib/telegram";
+import { getBaseUrl } from "@/lib/utils";
 
 // GET issues (with filtering)
 export async function GET(req: NextRequest) {
@@ -188,9 +189,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (admins.length > 0) {
-        const host = req.headers.get("host");
-        const protocol = req.headers.get("x-forwarded-proto") || "http";
-        const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+        const baseUrl = getBaseUrl(req);
         const issueLink = `/issues/${issue.id}`;
         const issueUrl = `${baseUrl}${issueLink}`;
 

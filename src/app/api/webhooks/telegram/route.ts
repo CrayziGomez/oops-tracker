@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
 
   // 1. Security Check
   if (secretToken !== expectedSecret) {
-    console.error("⛔ Unauthorized Webhook Attempt: Invalid Secret Token");
+    console.error(`⛔ Unauthorized Telegram Webhook: Secret mismatch.`);
+    console.error(`   Received: ${secretToken ? '****' + secretToken.slice(-4) : 'MISSING'}`);
+    console.error(`   Expected: ${expectedSecret ? '****' + expectedSecret.slice(-4) : 'NOT SET IN ENV'}`);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -21,11 +23,12 @@ export async function POST(req: NextRequest) {
     const message = body.message;
 
     if (!message || !message.text) {
-      return NextResponse.json({ ok: true }); // Acknowledge non-text messages
+      return NextResponse.json({ ok: true }); 
     }
 
     const chatId = message.chat.id.toString();
     const text = message.text;
+    console.log(`📩 Received Telegram message from Chat ID ${chatId}: "${text.slice(0, 50)}..."`);
 
     // 2. Identify the User
     const user = await prisma.user.findUnique({
@@ -33,8 +36,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      console.warn(`📩 Received message from unknown Chat ID: ${chatId}`);
-      // Future: Could send a "Welcome! Please link your ID in OOPS Settings" message back.
+      console.warn(`❓ Unknown Telegram user (Chat ID: ${chatId}). Ensure it is linked in Profile Settings.`);
       return NextResponse.json({ ok: true });
     }
 

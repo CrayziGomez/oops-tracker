@@ -61,3 +61,22 @@ export function categoryLabel(category: string): string {
   };
   return labels[category] || category;
 }
+
+/**
+ * Gets the base URL for the application, correctly handling proxies like NPM.
+ */
+export function getBaseUrl(req?: Request): string {
+  // 1. From environment
+  if (process.env.AUTH_URL) return process.env.AUTH_URL;
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+
+  // 2. From request headers (if available)
+  if (req) {
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") || "http";
+    if (host) return `${proto}://${host}`;
+  }
+
+  // 3. Fallback
+  return "http://localhost:3000";
+}

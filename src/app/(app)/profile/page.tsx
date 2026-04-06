@@ -385,13 +385,23 @@ export default function ProfilePage() {
         </div>
 
         <p className="text-xs text-white/40 leading-relaxed bg-white/[0.02] p-3 rounded-lg border border-white/5">
-           Toggle alerts for specific projects. Global Owners see all projects and can "Mute" any stream they find too noisy.
+           Manage alerts for projects you are a member of. If you don't see a project here, you may need to be added to it by an administrator.
         </p>
 
         {prefsLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
             </div>
+        ) : projectPrefs.length === 0 ? (
+          <div className="py-12 px-6 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
+            <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShieldOff className="w-6 h-6 text-white/10" />
+            </div>
+            <div className="text-sm font-medium text-white/60 mb-1">No Projects Found</div>
+            <p className="text-[11px] text-white/30 leading-relaxed">
+              You haven't joined any projects yet. Projects you belong to will appear here for notification control.
+            </p>
+          </div>
         ) : (
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {projectPrefs.map((pref: ProjectPreference) => (
@@ -410,11 +420,10 @@ export default function ProfilePage() {
                   <div>
                     <div className="text-sm font-medium text-white/90">{pref.name}</div>
                     <div className="text-[10px] text-white/30 flex items-center gap-1.5 mt-0.5">
-                       {pref.isMember ? (
-                         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-blue-500" /> Member</span>
-                       ) : (
-                         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-brand-500" /> Owner Global View</span>
-                       )}
+                       <span className="flex items-center gap-1">
+                         <span className={`w-1 h-1 rounded-full ${pref.enabled ? 'bg-brand-500' : 'bg-white/10'}`} /> 
+                         {pref.enabled ? 'Notifications Active' : 'Muted'}
+                       </span>
                     </div>
                   </div>
                 </div>

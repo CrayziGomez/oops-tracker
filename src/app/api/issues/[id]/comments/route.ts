@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { sendIssueNotification } from "@/lib/email";
 import { sendIssueTelegramAlert } from "@/lib/telegram";
+import { getBaseUrl } from "@/lib/utils";
 
 export async function GET(
   req: Request,
@@ -105,39 +106,63 @@ export async function POST(
       }
     });
 
-    if (issue && issue.reporterId !== session.user.id) {
-      const host = req.headers.get("host");
-      const protocol = req.headers.get("x-forwarded-proto") || "http";
-      const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+    // BROADCAST Logic (Phase 3): Notify Admins / Owners + Reporter
+    if (issue) {
+      const baseUrl = getBaseUrl(req);
       const issueUrl = `${baseUrl}/issues/${issueId}`;
+      const actionDesc = "New comment added";
 
-      // 1. Telegram Alert
-      if (issue.reporter.telegramEnabled && issue.reporter.telegramChatId) {
-        try {
-          await sendIssueTelegramAlert({
-            chatId: issue.reporter.telegramChatId,
-            issueId: issueId,
-            serialNumber: issue.serialNumber || 0,
-            issueTitle: issue.title,
-            action: "New comment added",
-            url: issueUrl,
-          });
-        } catch (tgError) {
-          console.error("Failed to send Telegram comment alert:", tgError);
+      const recipients = await prisma.user.findMany({
+        where: {
+          OR: [
+            { id: issue.reporterId }, // Include reporter
+            { role: "OWNER" },        // Include owners
+            {
+              memberships: {
+                some: {
+                  projectId: issue.projectId,
+                  role: "PROJECT_ADMIN"
+                }
+              }
+            }
+          ],
+          NOT: { id: session.user.id! } // Exclude the commenter
+        },
+        select: { 
+          id: true, email: true, emailEnabled: true,
+          telegramChatId: true, telegramEnabled: true 
         }
-      }
+      });
 
-      // 2. Email Alert
-      if (issue.reporter.emailEnabled) {
-        try {
-          await sendIssueNotification({
-            to: issue.reporter.email,
-            issueTitle: issue.title,
-            action: "New comment added",
-            issueUrl: issueUrl,
-          });
-        } catch (emailError) {
-          console.error("Failed to send Email comment alert:", emailError);
+      for (const recipient of recipients) {
+        // Telegram Alert
+        if (recipient.telegramEnabled && recipient.telegramChatId) {
+          try {
+            await sendIssueTelegramAlert({
+              chatId: recipient.telegramChatId,
+              issueId: issueId,
+              serialNumber: issue.serialNumber || 0,
+              issueTitle: issue.title,
+              action: actionDesc,
+              url: issueUrl,
+            });
+          } catch (e) {
+            console.error("Failed to send Telegram comment alert:", e);
+          }
+        }
+
+        // Email Alert
+        if (recipient.emailEnabled) {
+          try {
+            await sendIssueNotification({
+              to: recipient.email,
+              issueTitle: issue.title,
+              action: actionDesc,
+              issueUrl: issueUrl,
+            });
+          } catch (e) {
+            console.error("Failed to send Email comment alert:", e);
+          }
         }
       }
     }
