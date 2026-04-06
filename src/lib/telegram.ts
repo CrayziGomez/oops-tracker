@@ -56,7 +56,8 @@ export async function sendIssueTelegramAlert({
     `*Issue:* ${issueTitle}\n` +
     `*Action:* ${action}\n\n` +
     `🔗 [View Details](${url})\n\n` +
-    `💬 _Reply to this message to add a comment._`;
+    `💬 _Reply with a comment or photo to update this ticket._\n` +
+    `💡 _Tip: Reply /done to close or /action to mark as actioned._`;
 
   return sendTelegramMessage(chatId, message);
 }
@@ -88,9 +89,42 @@ export async function sendNewIssueTelegramAlert({
     `*Severity:* ${severity}\n` +
     `*Category:* ${category}\n\n` +
     `🔗 [View Details](${url})\n\n` +
-    `💬 _Reply to this message to add a comment._`;
+    `💬 _Reply with a comment or photo to update this ticket._\n` +
+    `💡 _Tip: Reply /done to close or /action to mark as actioned._`;
 
   return sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Gets file information from Telegram to generate a download link.
+ */
+export async function getTelegramFile(fileId: string) {
+  if (!BOT_TOKEN) return null;
+  try {
+    const response = await fetch(`${BASE_URL}/getFile?file_id=${fileId}`);
+    const data = await response.json();
+    return data.ok ? data.result : null;
+  } catch (error) {
+    console.error("Failed to get Telegram file info:", error);
+    return null;
+  }
+}
+
+/**
+ * Downloads a file from Telegram as a Buffer.
+ */
+export async function downloadTelegramFile(filePath: string): Promise<Buffer | null> {
+  if (!BOT_TOKEN) return null;
+  try {
+    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+    const response = await fetch(fileUrl);
+    if (!response.ok) throw new Error(`Failed to download file: ${response.statusText}`);
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error("Failed to download Telegram file:", error);
+    return null;
+  }
 }
 
 /**

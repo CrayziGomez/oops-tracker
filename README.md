@@ -13,11 +13,12 @@ OOPS is a self-hosted issue tracker with a premium **dark-mode aesthetic** and *
   - **Global Owners**: Full control over the system (create projects, manage global users, configure settings).
   - **Project Admins**: Can manage project team members and review/close issues for their specific projects.
   - **Users / Reporters**: Can report issues, update their own tickets, and join discussions strictly within their assigned projects.
+- **🔔 Smart Broadcasting**: Real-time multi-channel alerts (Email/Telegram) for project teams.
+- **📱 Advanced Telegram Bot**: Manage tickets via mobile. Commands like `/done` and photo attachments are supported.
+- **⚙️ Granular Notifications**: Users can toggle global channels and mute/unmute specific projects from their profile.
 - **💬 Comments**: Discussion threads on every issue.
 - **📎 Attachments**: Upload images, logs, and documents to issues.
 - **📊 Dashboard**: High-level overview of system metrics and activity.
-- **📩 Project Invitations**: Invite new team members by email address.
-- **🔔 Notification Center**: Real-time in-app alerts and email notifications for issue updates.
 - **🌑 Dark UI**: Built with Tailwind CSS 4 and Lucide icons.
 
 ---
@@ -145,6 +146,8 @@ All settings are environment variables in your `docker-compose.yml`:
 | `SEED_REPORTER_PASSWORD` | ✅ | Password for the default user account (set before first boot) |
 | `SEED_ADMIN_EMAIL` | optional | Owner login email. Default: `admin@oops.local` |
 | `SEED_REPORTER_EMAIL` | optional | User login email. Default: `reporter@oops.local` |
+| `TELEGRAM_BOT_TOKEN` | optional | Token from @BotFather to enable Telegram notifications |
+| `TELEGRAM_WEBHOOK_SECRET` | optional | A random string to secure your webhook. |
 | `OOPS_BREV_KEY` | optional | Brevo API Key for transactional emails. |
 | `BREVO_SENDER_NAME` | optional | Display name for outgoing emails (e.g. "OOPS Updates") |
 | `BREVO_SENDER_EMAIL` | optional | Verified sender email address in your Brevo account |
@@ -172,6 +175,9 @@ Two Docker volumes are created automatically and persist your data across restar
 | `oops_uploads` | Uploaded file attachments |
 
 > Deleting these volumes will permanently erase all data. Don't run `docker compose down -v` unless you want to start fresh.
+
+### Documentation
+-   **[User Guide](docs/USER_GUIDE.md)**: A complete guide for end-users on how to report issues and manage Telegram alerts.
 
 ### Updating to a newer version
 

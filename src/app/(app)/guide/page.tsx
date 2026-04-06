@@ -9,7 +9,10 @@ import {
   ShieldCheck, 
   Clock, 
   CheckCircle2, 
-  AlertCircle
+  AlertCircle,
+  BellRing,
+  Camera,
+  Smartphone
 } from "lucide-react";
 
 export default function GuidePage() {
@@ -33,6 +36,11 @@ export default function GuidePage() {
       title: "4. Status Workflow",
       icon: <Clock className="w-5 h-5 text-purple-400" />,
       content: "Issues move from OPEN → ACTIONED (in progress) → IN REVIEW → DONE. Reporters can 'Submit for Review' once they believe a fix is ready."
+    },
+    {
+      title: "5. Notification Hub",
+      icon: <BellRing className="w-5 h-5 text-pink-400" />,
+      content: "Control your alerts via the Profile page. You can toggle global Email/Telegram channels and manage granular subscriptions for each project you belong to."
     }
   ];
 
@@ -71,32 +79,32 @@ export default function GuidePage() {
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-1 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
-              Mobile Integration (Live)
+              Mobile Power (Live)
             </div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               <Send className="w-6 h-6 text-brand-400" />
-              Telegram Power-Ups
+              Telegram Advanced Bot
             </h2>
             <p className="text-white/60 leading-relaxed">
-              The OOPS Tracker is now fully integrated with Telegram. You can receive real-time alerts and **respond to tickets directly from Telegram**.
+              The OOPS Tracker is now fully integrated with Telegram. You can receive real-time alerts and **manage tickets directly from your phone**.
             </p>
             <div className="space-y-3 pt-2">
               <div className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
+                <Smartphone className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-white/40">
-                  <span className="text-white/80 font-medium">Link Your Profile:</span> Once you save your <span className="text-brand-400">Telegram Chat ID</span> in your Profile settings, the bot will start sending you updates.
+                  <span className="text-white/80 font-medium">Status Commands:</span> Reply to any OOPS alert with <span className="text-brand-400">/done</span> to close it, or <span className="text-brand-400">/action</span> to mark it as actioned instantly (Admins only).
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Camera className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-white/40">
+                  <span className="text-white/80 font-medium">Photo Attachments:</span> Send a photo in your reply to automatically attach it to the OOPS log. Captions will be added as comments.
                 </p>
               </div>
               <div className="flex items-start gap-3">
                 <MessageSquare className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-white/40">
-                  <span className="text-white/80 font-medium">Reply-from-Mobile:</span> Simply reply to any notification message in Telegram. Your reply will automatically appear as a **Comment** on the OOPS ticket!
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-white/40">
-                  <span className="text-white/80 font-medium">Instant Identification:</span> The OOPS bot uses the <span className="text-brand-400">OOPS-#</span> IDs to ensure your replies reach the correct issue instantly.
+                  <span className="text-white/80 font-medium">Remote Commenting:</span> Simply reply with any text. Your response will reach the dashboard as a **Comment** in real-time.
                 </p>
               </div>
             </div>
@@ -109,10 +117,10 @@ export default function GuidePage() {
                 </div>
                 <div className="space-y-1">
                    <p className="text-xs font-bold text-white/80">OOPS Bot</p>
-                   <p className="text-[10px] text-white/30 truncate">Log updated by Admin</p>
+                   <p className="text-[10px] text-white/30 truncate">✅ OOPS-42 marked DONE</p>
                 </div>
                 <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
-                   <div className="w-2/3 h-full bg-brand-500" />
+                   <div className="w-full h-full bg-emerald-500 shadow-[0_0_8px_rgba(var(--emerald-500),0.5)]" />
                 </div>
              </div>
           </div>
@@ -121,7 +129,7 @@ export default function GuidePage() {
 
       {/* Collaboration footer */}
       <div className="text-center space-y-4 pt-8">
-        <p className="text-sm text-white/20">Need more help? Contact your System Owner.</p>
+        <p className="text-sm text-white/20">Need more help? Contact your Project Administrator.</p>
         <div className="flex justify-center gap-4">
            {/* Mock buttons for visual completeness */}
            <div className="w-2 h-2 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(var(--brand-500),0.5)]" />
