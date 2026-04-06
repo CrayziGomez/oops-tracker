@@ -1,4 +1,6 @@
-async function main() {
+export {};
+
+async function debugMain() {
   const args = process.argv.slice(2);
   const chatId = args[0];
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -37,4 +39,4 @@ async function main() {
   }
 }
 
-main();
+debugMain();
