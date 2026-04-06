@@ -118,7 +118,7 @@ export async function POST(
             { id: issue.reporterId }, // Include reporter
             { role: "OWNER" },        // Include owners
             {
-              memberships: {
+              projectMembers: {
                 some: {
                   projectId: issue.projectId,
                   role: "PROJECT_ADMIN"

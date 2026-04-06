@@ -182,7 +182,7 @@ export async function PATCH(
           { id: issue.reporterId }, // Always include reporter
           { role: "OWNER" },        // Always include owners
           {
-            memberships: {
+            projectMembers: {
               some: {
                 projectId: issue.projectId,
                 role: "PROJECT_ADMIN"
