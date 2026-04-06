@@ -50,6 +50,7 @@ COPY --from=builder /app/prisma ./prisma
 
 # package.json needed so npm run db:seed resolves correctly
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/scripts ./scripts
 
 RUN mkdir -p public/uploads /app/data && chown -R nextjs:nodejs public/uploads /app/data
 
