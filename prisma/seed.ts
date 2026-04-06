@@ -33,6 +33,7 @@ async function main() {
       email: adminEmail,
       passwordHash: adminPassword,
       role: "OWNER",
+      emailEnabled: true,
     },
   });
   console.log(`✅ Admin user created: ${admin.email}`);
@@ -47,6 +48,7 @@ async function main() {
       email: reporterEmail,
       passwordHash: reporterPassword,
       role: "USER",
+      emailEnabled: true,
     },
   });
   console.log(`✅ Reporter user created: ${reporter.email}`);
@@ -85,9 +87,9 @@ async function main() {
   const memberships = [
     { userId: admin.id, projectId: project1.id, role: "PROJECT_ADMIN" },
     { userId: admin.id, projectId: project2.id, role: "PROJECT_ADMIN" },
-    { userId: admin.id, projectId: project3.id, role: "PROJECT_ADMIN" },
-    { userId: reporter.id, projectId: project1.id, role: "PROJECT_REPORTER" },
-    { userId: reporter.id, projectId: project2.id, role: "PROJECT_REPORTER" },
+    { userId: admin.id, projectId: project3.id, role: "PROJECT_ADMIN", notificationsEnabled: true },
+    { userId: reporter.id, projectId: project1.id, role: "PROJECT_REPORTER", notificationsEnabled: true },
+    { userId: reporter.id, projectId: project2.id, role: "PROJECT_REPORTER", notificationsEnabled: true },
   ];
 
   for (const m of memberships) {

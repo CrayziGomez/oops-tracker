@@ -30,6 +30,7 @@ export async function GET(
       role: true,
       telegramChatId: true,
       telegramEnabled: true,
+      emailEnabled: true,
     },
   });
 
@@ -59,7 +60,7 @@ export async function PATCH(
   }
 
   try {
-    const { name, email, currentPassword, newPassword, telegramChatId, telegramEnabled } = await req.json();
+    const { name, email, currentPassword, newPassword, telegramChatId, telegramEnabled, emailEnabled } = await req.json();
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -117,6 +118,10 @@ export async function PATCH(
       updateData.telegramEnabled = telegramEnabled;
     }
 
+    if (emailEnabled !== undefined) {
+      updateData.emailEnabled = emailEnabled;
+    }
+
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: "No changes provided" }, { status: 400 });
     }
@@ -124,7 +129,7 @@ export async function PATCH(
     const updated = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true },
+      select: { id: true, name: true, email: true, role: true, emailEnabled: true, telegramEnabled: true },
     });
 
     return NextResponse.json(updated);

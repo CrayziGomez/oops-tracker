@@ -62,6 +62,38 @@ export async function sendIssueTelegramAlert({
 }
 
 /**
+ * High-level helper to send a NEW issue alert to Admins.
+ */
+export async function sendNewIssueTelegramAlert({
+  chatId,
+  serialNumber,
+  issueTitle,
+  reporterName,
+  severity,
+  category,
+  url,
+}: {
+  chatId: string;
+  serialNumber: number;
+  issueTitle: string;
+  reporterName: string;
+  severity: string;
+  category: string;
+  url: string;
+}) {
+  const message = 
+    `🆕 *New OOPS Log: OOPS-${serialNumber}*\n\n` +
+    `*Title:* ${issueTitle}\n` +
+    `*Reporter:* ${reporterName}\n` +
+    `*Severity:* ${severity}\n` +
+    `*Category:* ${category}\n\n` +
+    `🔗 [View Details](${url})\n\n` +
+    `💬 _Reply to this message to add a comment._`;
+
+  return sendTelegramMessage(chatId, message);
+}
+
+/**
  * Registers the webhook URL with Telegram.
  */
 export async function setTelegramWebhook(webhookUrl: string, secretToken: string) {

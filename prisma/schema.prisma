@@ -23,6 +23,8 @@ model User {
   notifications   Notification[]
   telegramChatId  String?  @unique
   telegramEnabled Boolean  @default(false)
+  emailEnabled     Boolean  @default(true)
+  projectMutes   ProjectMute[]
 
   @@map("users")
 }
@@ -36,6 +38,7 @@ model Project {
   issues      Issue[]
   members     ProjectMember[]
   invitations ProjectInvitation[]
+  mutes       ProjectMute[]
 
   @@map("projects")
 }
@@ -116,6 +119,7 @@ model ProjectMember {
   userId    String
   projectId String
   role      String   @default("PROJECT_REPORTER") // PROJECT_ADMIN or PROJECT_REPORTER
+  notificationsEnabled Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -164,4 +168,19 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@map("notifications")
+}
+
+model ProjectMute {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([userId])
+  @@index([projectId])
+  @@map("project_mutes")
 }

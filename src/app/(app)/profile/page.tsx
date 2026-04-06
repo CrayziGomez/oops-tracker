@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { User, Mail, Lock, Loader2, AlertTriangle, CheckCircle, Eye, EyeOff, Send } from "lucide-react";
+import { User, Mail, Lock, Loader2, AlertTriangle, CheckCircle, Eye, EyeOff, Send, Bell, ShieldOff, Settings } from "lucide-react";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -34,9 +34,21 @@ export default function ProfilePage() {
   const [telegramMsg, setTelegramMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [hasLoadedTelegram, setHasLoadedTelegram] = useState(false);
 
+  interface ProjectPreference {
+    id: string;
+    name: string;
+    isMember: boolean;
+    enabled: boolean;
+  }
+
+  // Notification Preferences (New)
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [projectPrefs, setProjectPrefs] = useState<ProjectPreference[]>([]);
+  const [prefsLoading, setPrefsLoading] = useState(false);
+
   const userId = session?.user?.id;
 
-  const patch = async (body: Record<string, string>) => {
+  const patch = async (body: Record<string, any>) => {
     const res = await fetch(`/api/users/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -117,49 +129,52 @@ export default function ProfilePage() {
     }
   };
 
-  // Fetch initial telegram data
+  // Fetch initial preferences
   useEffect(() => {
     if (userId && !hasLoadedTelegram) {
       fetch(`/api/users/${userId}`)
-        .then(res => {
-          if (!res.ok) throw new Error("Failed to fetch profile");
-          return res.json();
-        })
+        .then(res => res.json())
         .then(data => {
           setTelegramChatId(data.telegramChatId || "");
           setTelegramEnabled(data.telegramEnabled || false);
+          setEmailEnabled(data.emailEnabled !== undefined ? data.emailEnabled : true);
           setHasLoadedTelegram(true);
-        })
-        .catch(err => {
-          console.error("Error loading telegram profile:", err);
         });
+
+      // Fetch project preferences
+      setPrefsLoading(true);
+      fetch(`/api/notifications/preferences`)
+        .then(res => res.json())
+        .then(data => setProjectPrefs(data))
+        .finally(() => setPrefsLoading(false));
     }
   }, [userId, hasLoadedTelegram]);
 
-  const handleTelegramSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTelegramLoading(true);
-    setTelegramMsg(null);
+  const handleGlobalToggle = async (type: "email" | "telegram", value: boolean) => {
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const body = type === "email" ? { emailEnabled: value } : { telegramEnabled: value };
+      await fetch(`/api/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          telegramChatId: telegramChatId.trim() || null,
-          telegramEnabled 
-        }),
+        body: JSON.stringify(body),
       });
+      if (type === "email") setEmailEnabled(value);
+      else setTelegramEnabled(value);
+    } catch (err) {
+      console.error("Failed to toggle global setting:", err);
+    }
+  };
 
-      if (res.ok) {
-        setTelegramMsg({ type: "success", text: "Telegram settings updated." });
-      } else {
-        const err = await res.json();
-        setTelegramMsg({ type: "error", text: err.error || "Failed to update Telegram settings" });
-      }
-    } catch {
-      setTelegramMsg({ type: "error", text: "An unexpected error occurred" });
-    } finally {
-      setTelegramLoading(false);
+  const handleProjectToggle = async (projectId: string, enabled: boolean) => {
+    try {
+      setProjectPrefs((prev: ProjectPreference[]) => prev.map((p: ProjectPreference) => p.id === projectId ? { ...p, enabled } : p));
+      await fetch(`/api/notifications/preferences`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, enabled }),
+      });
+    } catch (err) {
+      console.error("Failed to toggle project setting:", err);
     }
   };
 
@@ -276,69 +291,141 @@ export default function ProfilePage() {
         </form>
       </div>
 
-      {/* Telegram Foundation */}
-      <div className="card p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white/70 font-semibold">
-            <Send className="w-4 h-4 text-brand-400" />
-            Telegram Notifications
-          </div>
-          <span className="text-[10px] bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-            Foundation
-          </span>
+      {/* Notification Channels */}
+      <div className="card p-6 space-y-6">
+        <div className="flex items-center gap-2 text-white/70 font-semibold">
+          <Settings className="w-4 h-4" />
+          Notification Channels
         </div>
         
-        <form onSubmit={handleTelegramSave} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs text-white/30">Telegram Chat ID</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Email Toggle */}
+          <div className="card p-4 bg-white/[0.03] border-white/5 space-y-4">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white/80 font-medium">
+                  <Mail className="w-4 h-4 text-brand-400" />
+                  Email Alerts
+                </div>
+                <Toggle 
+                  enabled={emailEnabled} 
+                  onChange={(val) => handleGlobalToggle("email", val)} 
+                />
+             </div>
+             <p className="text-[10px] text-white/30 leading-relaxed">
+               Receive issue updates, project invites, and team comments via your inbox.
+             </p>
+          </div>
+
+          {/* Telegram Toggle */}
+          <div className="card p-4 bg-white/[0.03] border-white/5 space-y-4">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white/80 font-medium">
+                  <Send className="w-4 h-4 text-[#0088cc]" />
+                  Telegram Bot
+                </div>
+                <Toggle 
+                  enabled={telegramEnabled} 
+                  onChange={(val) => handleGlobalToggle("telegram", val)} 
+                />
+             </div>
+             <p className="text-[10px] text-white/30 leading-relaxed">
+               Instant mobile alerts when OOPS are logged or updated. Requires Chat ID.
+             </p>
+          </div>
+        </div>
+
+        {/* Telegram Chat ID Configuration (Nested) */}
+        <div className="bg-brand-500/5 rounded-xl p-4 border border-brand-500/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-brand-400 uppercase tracking-wider">Telegram Link</label>
+            {telegramMsg && <span className={`text-[10px] font-medium ${telegramMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>{telegramMsg.text}</span>}
+          </div>
+          <div className="flex gap-2">
             <input
               type="text"
               value={telegramChatId}
               onChange={(e) => setTelegramChatId(e.target.value)}
-              className="input-field"
-              placeholder="e.g. 123456789"
+              className="input-field bg-black/20"
+              placeholder="Your Chat ID (e.g. 123456789)"
             />
-            <p className="text-[10px] text-white/30 flex items-center gap-1.5 mt-1.5">
-              <span>Find your ID by messaging</span>
-              <a 
-                href="https://t.me/userinfobot" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-brand-400 hover:underline font-medium"
-              >
-                @userinfobot
-              </a>
-              <span>on Telegram.</span>
-            </p>
-          </div>
-
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <div className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={telegramEnabled}
-                onChange={(e) => setTelegramEnabled(e.target.checked)}
-                className="sr-only peer" 
-              />
-              <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
-            </div>
-            <span className="text-sm text-white/60 group-hover:text-white transition-colors">
-              Enable Telegram Alerts
-            </span>
-          </label>
-
-          {telegramMsg && <Feedback msg={telegramMsg} />}
-
-          <div className="flex justify-end pt-2">
             <button
-              type="submit"
+              onClick={() => {
+                setTelegramLoading(true);
+                fetch(`/api/users/${userId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ telegramChatId: telegramChatId.trim() || null }),
+                }).then(() => {
+                   setTelegramMsg({ type: 'success', text: 'Linked!' });
+                   setTimeout(() => setTelegramMsg(null), 2000);
+                }).finally(() => setTelegramLoading(false));
+              }}
               disabled={telegramLoading}
-              className="btn-primary"
+              className="btn-primary py-2 px-4 h-auto text-xs"
             >
-              {telegramLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Telegram Settings"}
+              {telegramLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Link"}
             </button>
           </div>
-        </form>
+          <p className="text-[10px] text-white/20">
+            Get your ID from <a href="https://t.me/userinfobot" target="_blank" className="text-white/40 hover:underline">@userinfobot</a>. Starting the bot first is required.
+          </p>
+        </div>
+      </div>
+
+      {/* Project Subscriptions */}
+      <div className="card p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white/70 font-semibold">
+            <Bell className="w-4 h-4" />
+            Project Subscriptions
+          </div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-white/20">
+            {projectPrefs.length} Active
+          </div>
+        </div>
+
+        <p className="text-xs text-white/40 leading-relaxed bg-white/[0.02] p-3 rounded-lg border border-white/5">
+           Toggle alerts for specific projects. Global Owners see all projects and can "Mute" any stream they find too noisy.
+        </p>
+
+        {prefsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
+            </div>
+        ) : (
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {projectPrefs.map((pref: ProjectPreference) => (
+              <div 
+                key={pref.id} 
+                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                  pref.enabled 
+                  ? 'bg-white/[0.03] border-white/5 hover:bg-white/[0.05]' 
+                  : 'bg-black/20 border-white/5 opacity-60 grayscale'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${pref.enabled ? 'bg-brand-500/10 text-brand-400' : 'bg-white/5 text-white/20'}`}>
+                    {pref.enabled ? <Bell className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white/90">{pref.name}</div>
+                    <div className="text-[10px] text-white/30 flex items-center gap-1.5 mt-0.5">
+                       {pref.isMember ? (
+                         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-blue-500" /> Member</span>
+                       ) : (
+                         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-brand-500" /> Owner Global View</span>
+                       )}
+                    </div>
+                  </div>
+                </div>
+                <Toggle 
+                  enabled={pref.enabled} 
+                  onChange={(val) => handleProjectToggle(pref.id, val)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Sign out */}
@@ -374,6 +461,20 @@ function Feedback({ msg }: { msg: { type: "success" | "error"; text: string } })
       )}
       {msg.text}
     </div>
+  );
+}
+
+function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="relative inline-flex items-center cursor-pointer">
+      <input 
+        type="checkbox" 
+        checked={enabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only peer" 
+      />
+      <div className="w-10 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[20px] rtl:peer-checked:after:-translate-x-[20px] after:content-[''] after:absolute after:top-1 after:start-[5px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-brand-500"></div>
+    </label>
   );
 }
 

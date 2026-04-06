@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
+import { sendIssueNotification } from "@/lib/email";
+import { sendNewIssueTelegramAlert } from "@/lib/telegram";
 
 // GET issues (with filtering)
 export async function GET(req: NextRequest) {
@@ -150,6 +152,92 @@ export async function POST(req: NextRequest) {
       action: "CREATION",
       details: `Issue OOPS-${issue.serialNumber} created: ${title}`,
     });
+
+    // --- NOTIFICATION DISPATCH ---
+    // Notify Global Owners and Project Admins
+    try {
+      const admins = await prisma.user.findMany({
+        where: {
+          OR: [
+            { 
+              role: "OWNER",
+              projectMutes: {
+                none: { projectId } // Not muted by owner
+              }
+            },
+            {
+              projectMembers: {
+                some: { 
+                  projectId, 
+                  role: "PROJECT_ADMIN",
+                  notificationsEnabled: true // Per-project enabled
+                }
+              }
+            }
+          ],
+          NOT: { id: session.user.id } // Exclude the creator
+        },
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          emailEnabled: true,
+          telegramChatId: true, 
+          telegramEnabled: true 
+        }
+      });
+
+      if (admins.length > 0) {
+        const host = req.headers.get("host");
+        const protocol = req.headers.get("x-forwarded-proto") || "http";
+        const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+        const issueLink = `/issues/${issue.id}`;
+        const issueUrl = `${baseUrl}${issueLink}`;
+
+        for (const admin of admins) {
+          // 1. In-App Notification
+          await prisma.notification.create({
+            data: {
+              userId: admin.id,
+              title: "New OOPS Log Shared",
+              message: `[OOPS-${issue.serialNumber}] ${issue.reporter.name} just logged: ${issue.title}`,
+              type: "NEW_ISSUE",
+              link: issueLink,
+            },
+          });
+
+          // 2. Telegram Alert
+          if (admin.telegramEnabled && admin.telegramChatId) {
+            await sendNewIssueTelegramAlert({
+              chatId: admin.telegramChatId,
+              serialNumber: issue.serialNumber || 0,
+              issueTitle: issue.title,
+              reporterName: issue.reporter.name,
+              severity: issue.severity,
+              category: issue.category,
+              url: issueUrl,
+            });
+          }
+
+          // 3. Email Alert (Only if globally enabled)
+          if (admin.emailEnabled) {
+             try {
+               await sendIssueNotification({
+                 to: admin.email,
+                 issueTitle: issue.title,
+                 action: `created by ${issue.reporter.name}`,
+                 issueUrl: issueUrl,
+               });
+             } catch (emailErr) {
+               console.error(`Failed to send new issue email to ${admin.email}:`, emailErr);
+             }
+          }
+        }
+      }
+    } catch (dispatchError) {
+      console.error("🔥 Failed to dispatch new issue notifications:", dispatchError);
+      // Non-blocking error, we don't want to fail the issue creation itself
+    }
 
     return NextResponse.json(issue, { status: 201 });
   } catch (error) {

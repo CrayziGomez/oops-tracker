@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
+import { sendIssueNotification } from "@/lib/email";
 import { sendIssueTelegramAlert } from "@/lib/telegram";
 
 export async function GET(
@@ -87,32 +88,57 @@ export async function POST(
       details: `Added a comment`,
     });
 
-    // Notify Reporter via Telegram
+    // Notify Reporter
     const issue = await prisma.issue.findUnique({
       where: { id: issueId },
       include: { 
         reporter: {
-          select: { id: true, telegramChatId: true, telegramEnabled: true }
+          select: { 
+            id: true, 
+            name: true,
+            email: true,
+            emailEnabled: true,
+            telegramChatId: true, 
+            telegramEnabled: true 
+          }
         }
       }
     });
 
-    if (issue && issue.reporterId !== session.user.id && issue.reporter.telegramEnabled && issue.reporter.telegramChatId) {
-      try {
-        const host = req.headers.get("host");
-        const protocol = req.headers.get("x-forwarded-proto") || "http";
-        const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+    if (issue && issue.reporterId !== session.user.id) {
+      const host = req.headers.get("host");
+      const protocol = req.headers.get("x-forwarded-proto") || "http";
+      const baseUrl = process.env.AUTH_URL || `${protocol}://${host}`;
+      const issueUrl = `${baseUrl}/issues/${issueId}`;
 
-        await sendIssueTelegramAlert({
-          chatId: issue.reporter.telegramChatId,
-          issueId: issueId,
-          serialNumber: issue.serialNumber || 0,
-          issueTitle: issue.title,
-          action: "New comment added",
-          url: `${baseUrl}/issues/${issueId}`,
-        });
-      } catch (tgError) {
-        console.error("Failed to send Telegram comment alert:", tgError);
+      // 1. Telegram Alert
+      if (issue.reporter.telegramEnabled && issue.reporter.telegramChatId) {
+        try {
+          await sendIssueTelegramAlert({
+            chatId: issue.reporter.telegramChatId,
+            issueId: issueId,
+            serialNumber: issue.serialNumber || 0,
+            issueTitle: issue.title,
+            action: "New comment added",
+            url: issueUrl,
+          });
+        } catch (tgError) {
+          console.error("Failed to send Telegram comment alert:", tgError);
+        }
+      }
+
+      // 2. Email Alert
+      if (issue.reporter.emailEnabled) {
+        try {
+          await sendIssueNotification({
+            to: issue.reporter.email,
+            issueTitle: issue.title,
+            action: "New comment added",
+            issueUrl: issueUrl,
+          });
+        } catch (emailError) {
+          console.error("Failed to send Email comment alert:", emailError);
+        }
       }
     }
 
